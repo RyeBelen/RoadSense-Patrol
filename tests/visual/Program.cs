@@ -24,21 +24,24 @@ using (var inputForm = new GameForm())
         throw new Exception("W must start the game and stay held through countdown");
     for (int i = 0; i < 190; i++) inputModel.Update(1f / 60f);
     inputModel.Update(1f / 60f);
-    if (inputModel.Phase != GamePhase.Playing || inputModel.EffectiveSpeed < inputModel.Speed * 1.74f)
-        throw new Exception("W key must boost speed once gameplay begins");
+    if (inputModel.Phase != GamePhase.Playing || inputModel.EffectiveSpeed <= inputModel.Speed ||
+        inputModel.EffectiveSpeed >= inputModel.Speed * 1.1f)
+        throw new Exception("W key must begin a gradual boost once gameplay begins");
+    for (int i = 0; i < 89; i++) inputModel.Update(1f / 60f);
+    if (Math.Abs(inputModel.CarY - GameModel.BoostFrontY) > .01f ||
+        inputModel.EffectiveSpeed < inputModel.Speed * 1.74f)
+        throw new Exception("Holding W must reach the top and full boost");
     keyUpHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.W)]);
     inputModel.Update(1f / 60f);
-    if (inputModel.AccelerateHeld || !inputModel.IsBoosting)
-        throw new Exception("Releasing W must leave a visible boost pulse");
-    for (int i = 0; i < 30; i++) inputModel.Update(1f / 60f);
-    if (Math.Abs(inputModel.CarY - GameModel.BoostFrontY) > .01f)
-        throw new Exception("A W tap must move the car to the top edge");
-    for (int i = 0; i < 100; i++) inputModel.Update(1f / 60f);
+    if (inputModel.AccelerateHeld || !inputModel.IsBoosting ||
+        inputModel.EffectiveSpeed >= inputModel.Speed * 1.75f)
+        throw new Exception("Releasing W must begin gradual deceleration");
+    for (int i = 0; i < 89; i++) inputModel.Update(1f / 60f);
     if (inputModel.IsBoosting || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
         throw new Exception("W boost must end and restore cruise speed");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.4.4")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.4.5")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {

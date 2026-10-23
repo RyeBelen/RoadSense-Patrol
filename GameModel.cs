@@ -96,8 +96,7 @@ public sealed class GameModel
     private float crashSeconds;
     private float laneFrom = 1;
     private float laneMoveTime = 0.34f;
-    private float forwardAmount;
-    private float boostPulseSeconds;
+    private float boostFraction;
     private int routeChunk;
 
     public GamePhase Phase { get; private set; } = GamePhase.Attract;
@@ -116,8 +115,8 @@ public sealed class GameModel
     public float ScanMeter { get; private set; } = 1;
     public bool ScanHeld { get; set; }
     public bool AccelerateHeld { get; set; }
-    public bool IsBoosting => Phase == GamePhase.Playing && !BrakeHeld &&
-        (AccelerateHeld || boostPulseSeconds > 0);
+    public bool IsBoosting => Phase == GamePhase.Playing && boostFraction > 0;
+    public float BoostFraction => boostFraction;
     public bool BrakeHeld { get; private set; }
     public int Lives { get; private set; }
     public float Speed { get; private set; }
@@ -161,9 +160,9 @@ public sealed class GameModel
         route.AddRange(RouteGenerator.Generate(Seed, 300));
         routeChunk = 0;
         nextEvent = 0; spawnClock = 0; gameClock = 0; countdown = 3.1f;
-        resultIdle = 0; boostSeconds = boostPulseSeconds = 0; flashSeconds = 0;
+        resultIdle = 0; boostSeconds = 0; flashSeconds = 0;
         Score = Streak = BestStreak = Shield = RepairCrew = Handled = Detected = Missed = NearMisses = TrafficPassed = TrafficCollisions = 0;
-        Lane = 1; CarLane = laneFrom = 1; CarY = PlayerY; forwardAmount = 0;
+        Lane = 1; CarLane = laneFrom = 1; CarY = PlayerY; boostFraction = 0;
         laneMoveTime = 0.34f; ScanMeter = 1; SignalBoost = PatchSlowSeconds = 0;
         Lives = config.StartingLives; Speed = EffectiveSpeed = config.BaseSpeed;
         BrakeHeld = ScanHeld = AccelerateHeld = false;
@@ -180,7 +179,6 @@ public sealed class GameModel
         if (Phase is GamePhase.Countdown or GamePhase.Playing)
         {
             AccelerateHeld = true;
-            boostPulseSeconds = 0.85f;
         }
     }
 
@@ -242,9 +240,9 @@ public sealed class GameModel
 
         gameClock += dt;
         spawnClock += dt;
-        boostPulseSeconds = Math.Max(0, boostPulseSeconds - dt);
-        forwardAmount = Math.Clamp(forwardAmount + (IsBoosting ? 2.5f : -1.4f) * dt, 0, 1);
-        float forwardEased = forwardAmount * forwardAmount * (3 - 2 * forwardAmount);
+        boostFraction = Math.Clamp(boostFraction +
+            (AccelerateHeld && !BrakeHeld ? 0.75f : -0.75f) * dt, 0, 1);
+        float forwardEased = boostFraction * boostFraction * (3 - 2 * boostFraction);
         CarY = PlayerY + (BoostFrontY - PlayerY) * forwardEased;
         SignalBoost = Math.Max(0, SignalBoost - dt);
         PatchSlowSeconds = Math.Max(0, PatchSlowSeconds - dt);
@@ -253,7 +251,7 @@ public sealed class GameModel
         boostSeconds = scanning ? boostSeconds + dt : 0;
         Speed = Math.Min(config.MaxSpeed, config.BaseSpeed + gameClock * config.SpeedIncreasePerSecond);
         float speed = Speed;
-        if (IsBoosting) speed *= 1.75f;
+        speed *= 1 + 0.75f * boostFraction;
         if (BrakeHeld) speed *= 0.63f;
         if (scanning) speed *= 0.82f;
         if (PatchSlowSeconds > 0) speed *= 0.68f;

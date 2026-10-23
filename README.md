@@ -6,7 +6,7 @@ Road hazards and scanner detections are simulated for demonstration. The game do
 
 The Windows executable and game window use the RoadSense logo. When the third life is lost, the game plays the supplied crash sound; the original source clip is `crash sound.mp3` and the embedded playback asset is `assets/crash.wav`.
 
-Press **W** for a short surge toward the top of the road, or hold it to stay forward. The car returns to its cruise position and progression speed after the surge ends. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
+Hold **W** to build speed gradually and move toward the top of the road. Releasing W gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
 
 ## Download
 
@@ -73,7 +73,7 @@ Edit `settings.json` beside the executable:
 - `boothSeed`: set to an integer for the same route for every player; use `null` for randomized routes.
 - `fullscreenOnStart`: set to `true` for a fullscreen booth display.
 - `startingLives`: default 3.
-- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. A W surge temporarily raises effective speed by 75%; afterward it returns to the current progression speed.
+- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. Holding W ramps effective speed up to 75% above cruise over about 1.3 seconds; releasing W eases it back to the current progression speed.
 - `prizeScore`: score target, default 5000.
 - `showPrizeTarget`: set to `true` only when the booth actually offers a prize.
 

@@ -40,34 +40,30 @@ Check(speedModel.Speed >= 325 && speedModel.Speed < 350,
 float cruiseSpeed = speedModel.Speed;
 speedModel.AccelerateHeld = true;
 speedModel.Update(1f / 60f);
-Check(speedModel.EffectiveSpeed > speedModel.Speed * 1.34f && speedModel.Speed > cruiseSpeed,
-    "W boost raises effective speed without resetting progression");
-for (int i = 0; i < 65; i++) speedModel.Update(1f / 60f);
+Check(speedModel.EffectiveSpeed > speedModel.Speed &&
+      speedModel.EffectiveSpeed < speedModel.Speed * 1.03f && speedModel.Speed > cruiseSpeed,
+    "W begins accelerating without jumping to maximum speed");
+for (int i = 0; i < 29; i++) speedModel.Update(1f / 60f);
+Check(speedModel.BoostFraction > .3f && speedModel.BoostFraction < .4f &&
+      speedModel.CarY < GameModel.PlayerY && speedModel.CarY > GameModel.BoostFrontY,
+    "W gradually raises speed and moves the car forward");
+for (int i = 0; i < 60; i++) speedModel.Update(1f / 60f);
 Check(Math.Abs(speedModel.CarY - GameModel.BoostFrontY) < .01f &&
       speedModel.EffectiveSpeed > speedModel.Speed * 1.74f,
     "holding W drives the whole car to the top edge at higher speed");
 Check(speedModel.DisplayKph > speedModel.CruiseKph && speedModel.DisplayKph <= 125,
     "W shows a temporary higher km/h reading");
 speedModel.AccelerateHeld = false;
+float boostSpeedAtRelease = speedModel.EffectiveSpeed;
 speedModel.Update(1f / 60f);
-Check(Math.Abs(speedModel.EffectiveSpeed - speedModel.Speed) < .01f && speedModel.Speed > cruiseSpeed,
-    "releasing W returns to current progression speed");
-Check(Math.Abs(speedModel.DisplayKph - speedModel.CruiseKph) < .01f,
-    "releasing W restores the current cruise km/h reading");
-for (int i = 0; i < 50; i++) speedModel.Update(1f / 60f);
-Check(Math.Abs(speedModel.CarY - GameModel.PlayerY) < .01f,
-    "releasing W brings the car back to its cruise position");
-var tapModel = new GameModel(new GameConfig { BoothSeed = 4242, StartingLives = 999 });
-tapModel.Start();
-for (int i = 0; i < 190; i++) tapModel.Update(1f / 60f);
-tapModel.PressBoost();
-tapModel.AccelerateHeld = false;
-for (int i = 0; i < 30; i++) tapModel.Update(1f / 60f);
-Check(Math.Abs(tapModel.CarY - GameModel.BoostFrontY) < .01f && tapModel.IsBoosting,
-    "a quick W tap reaches the top without holding the key");
-for (int i = 0; i < 100; i++) tapModel.Update(1f / 60f);
-Check(Math.Abs(tapModel.CarY - GameModel.PlayerY) < .01f && !tapModel.IsBoosting,
-    "a quick W tap returns to the current cruise position");
+Check(speedModel.EffectiveSpeed < boostSpeedAtRelease &&
+      speedModel.EffectiveSpeed > speedModel.Speed && speedModel.Speed > cruiseSpeed,
+    "releasing W starts a gradual return to current progression speed");
+for (int i = 0; i < 89; i++) speedModel.Update(1f / 60f);
+Check(Math.Abs(speedModel.EffectiveSpeed - speedModel.Speed) < .01f &&
+      Math.Abs(speedModel.DisplayKph - speedModel.CruiseKph) < .01f &&
+      Math.Abs(speedModel.CarY - GameModel.PlayerY) < .01f,
+    "W release restores the current cruise speed and car position");
 var steeringModel = new GameModel(new GameConfig { BoothSeed = 88 });
 steeringModel.Start();
 for (int i = 0; i < 190; i++) steeringModel.Update(1f / 60f);
