@@ -8,6 +8,8 @@ The Windows executable and game window use the RoadSense logo. When the third li
 
 Hold **W** or **Up Arrow** to build speed gradually and move toward the top of the road. Releasing it gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or Left/Right to steer, **S** or Down to brake, and **B** to scan farther ahead and reveal hazards in side lanes. Normal radar reveals road distress only in your current lane; detected hazards remain visible after you change lanes.
 
+The scanner has an energy bar and a cooldown bar. Releasing Scan Boost starts a 3-second cooldown; draining its energy starts a 5-second cooldown. Scan Boost cannot run again until the cooldown finishes, and its energy recharges while it rests.
+
 ## Download
 
 Packaged Windows x64 builds are on the [GitHub Releases page](https://github.com/clouddddd34/RoadSense-Patrol/releases). For the newest source changes, build from `main` using the instructions below. The installer adds a Start Menu shortcut and an optional desktop shortcut. It runs offline and includes the .NET runtime.

@@ -93,7 +93,8 @@ public sealed class GameModel
     private int nextEvent;
     private float spawnClock;
     private float gameClock;
-    private float boostSeconds;
+    private float scanCooldownDuration = 3f;
+    private bool scanArmed = true;
     private float flashSeconds;
     private float resultIdle;
     private float countdown;
@@ -117,10 +118,14 @@ public sealed class GameModel
     public float SignalBoost { get; private set; }
     public float PatchSlowSeconds { get; private set; }
     public float ScanMeter { get; private set; } = 1;
+    public float ScanCooldownRemaining { get; private set; }
+    public float ScanCooldownProgress => ScanCooldownRemaining <= 0 ? 1 :
+        1 - ScanCooldownRemaining / scanCooldownDuration;
+    public bool IsScanning { get; private set; }
     public bool ScanHeld { get; set; }
     public bool AccelerateHeld { get; set; }
     public bool IsBoosting => Phase == GamePhase.Playing && boostFraction > 0;
-    public bool RadarWide => (ScanHeld && ScanMeter > 0) || SignalBoost > 0;
+    public bool RadarWide => IsScanning || SignalBoost > 0;
     public float RadarStartY => Math.Min(RadarWide ? 20 : gameClock < 20 ? 145 : gameClock < 55 ? 190 : 230,
         CarY - 210);
     public float BoostFraction => boostFraction;
@@ -167,10 +172,11 @@ public sealed class GameModel
         route.AddRange(RouteGenerator.Generate(Seed, 300));
         routeChunk = 0;
         nextEvent = 0; spawnClock = 0; gameClock = 0; countdown = 3.1f;
-        resultIdle = 0; boostSeconds = 0; flashSeconds = 0;
+        resultIdle = 0; flashSeconds = 0;
         Score = Streak = BestStreak = Shield = RepairCrew = Handled = Detected = Missed = NearMisses = TrafficPassed = TrafficCollisions = 0;
         Lane = 1; CarLane = laneFrom = 1; CarY = PlayerY; boostFraction = 0;
         laneMoveTime = 0.34f; ScanMeter = 1; SignalBoost = PatchSlowSeconds = 0;
+        ScanCooldownRemaining = 0; scanCooldownDuration = 3f; scanArmed = true; IsScanning = false;
         Lives = config.StartingLives; Speed = EffectiveSpeed = config.BaseSpeed;
         BrakeHeld = ScanHeld = AccelerateHeld = false;
         Warning = "SCANNER READY"; WarningType = null; TrafficWarning = false;
@@ -253,9 +259,23 @@ public sealed class GameModel
         CarY = PlayerY + (BoostFrontY - PlayerY) * forwardEased;
         SignalBoost = Math.Max(0, SignalBoost - dt);
         PatchSlowSeconds = Math.Max(0, PatchSlowSeconds - dt);
-        bool scanning = ScanHeld && ScanMeter > 0;
-        ScanMeter = Math.Clamp(ScanMeter + (scanning ? -0.24f : 0.10f) * dt, 0, 1);
-        boostSeconds = scanning ? boostSeconds + dt : 0;
+        ScanCooldownRemaining = Math.Max(0, ScanCooldownRemaining - dt);
+        if (!ScanHeld) scanArmed = true;
+        bool scanning = ScanHeld && scanArmed && ScanCooldownRemaining <= 0 &&
+            (ScanMeter >= .25f || IsScanning && ScanMeter > 0);
+        if (IsScanning && !scanning) BeginScanCooldown(3f);
+        if (scanning)
+        {
+            ScanMeter = Math.Max(0, ScanMeter - .24f * dt);
+            if (ScanMeter <= 0)
+            {
+                scanning = false;
+                scanArmed = false;
+                BeginScanCooldown(5f);
+            }
+        }
+        else ScanMeter = Math.Min(1, ScanMeter + .10f * dt);
+        IsScanning = scanning;
         Speed = Math.Min(config.MaxSpeed, config.BaseSpeed + gameClock * config.SpeedIncreasePerSecond);
         float speed = Speed;
         speed *= 1 + 0.75f * boostFraction;
@@ -351,11 +371,18 @@ public sealed class GameModel
             Phase = GamePhase.Crashing;
             crashSeconds = 2.4f;
             ScanHeld = BrakeHeld = AccelerateHeld = false;
+            IsScanning = false;
             SoundRequested?.Invoke("crash");
         }
     }
 
     public int CountdownNumber => Math.Max(1, (int)Math.Ceiling(countdown));
+
+    private void BeginScanCooldown(float seconds)
+    {
+        scanCooldownDuration = seconds;
+        ScanCooldownRemaining = seconds;
+    }
 
     private void SteerTrafficAroundMajorPothole(RoadObject car, float dt)
     {

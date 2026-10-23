@@ -196,6 +196,31 @@ radarModel.ScanHeld = true;
 radarModel.Update(1f / 60f);
 Check(sideHazard.Warned && radarModel.RadarWide,
     "scan boost reveals road distress in side lanes");
+radarModel.ScanHeld = false;
+radarModel.Update(1f / 60f);
+Check(!radarModel.IsScanning && radarModel.ScanCooldownRemaining > 2.9f &&
+      radarModel.ScanCooldownProgress < .05f,
+    "releasing scan starts the visible cooldown");
+float energyDuringCooldown = radarModel.ScanMeter;
+radarModel.ScanHeld = true;
+for (int i = 0; i < 60; i++) radarModel.Update(1f / 60f);
+Check(!radarModel.IsScanning && radarModel.ScanMeter > energyDuringCooldown &&
+      radarModel.ScanCooldownProgress > .3f,
+    "repeated scan input cannot bypass cooldown while energy recovers");
+radarModel.ScanHeld = false;
+for (int i = 0; i < 130; i++) radarModel.Update(1f / 60f);
+radarModel.ScanHeld = true;
+radarModel.Update(1f / 60f);
+Check(radarModel.IsScanning && radarModel.ScanCooldownRemaining == 0,
+    "scanner works again after cooldown");
+var drainedScan = new GameModel(new GameConfig { BoothSeed = 18, StartingLives = 999 });
+drainedScan.Start();
+for (int i = 0; i < 190; i++) drainedScan.Update(1f / 60f);
+drainedScan.ScanHeld = true;
+for (int i = 0; i < 260; i++) drainedScan.Update(1f / 60f);
+Check(!drainedScan.IsScanning && drainedScan.ScanCooldownRemaining > 4.5f &&
+      drainedScan.ScanMeter < .05f,
+    "empty scanner energy triggers a longer cooldown");
 var bikeModel = new GameModel(new GameConfig { BoothSeed = 17, StartingLives = 99 });
 bikeModel.Start();
 for (int i = 0; i < 190; i++) bikeModel.Update(1f / 60f);

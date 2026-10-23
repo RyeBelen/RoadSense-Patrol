@@ -64,7 +64,7 @@ using (var inputForm = new GameForm())
         throw new Exception("Releasing Up Arrow must return the car and speed to cruise");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.4.8")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.4.9")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
@@ -98,6 +98,11 @@ Save("lane-transition.png");
 model.Start();
 for (int i = 0; i < 12 * 60; i++) model.Update(1f / 60f);
 Save("gameplay.png");
+model.ScanHeld = true;
+for (int i = 0; i < 30; i++) model.Update(1f / 60f);
+model.ScanHeld = false;
+model.Update(1f / 60f);
+Save("scan-cooldown.png");
 var hazardPreview = new[]
 {
     new RoadObject { Lane = 0, Hazard = HazardType.MinorPothole, Y = 220, Warned = true },

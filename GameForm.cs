@@ -674,21 +674,28 @@ public sealed class GameForm : Form
             game.TrafficWarning ? "CHANGE LANES" :
             game.WarningType is HazardType.MinorPothole or HazardType.Patch or HazardType.Hump ? "BRAKE OR DODGE" : "WATCH THE ROAD";
         DrawText(g, advice, 13, warningColor, 1024, 229, width: 150, style: FontStyle.Bold);
-        FillRound(g, Panel, 1012, 272, 176, 157, 15);
-        DrawText(g, "SCAN ENERGY", 12, Muted, 1024, 285, style: FontStyle.Bold);
-        FillRound(g, Border, 1024, 313, 152, 13, 6);
-        FillRound(g, Cyan, 1024, 313, 152 * game.ScanMeter, 13, 6);
-        DrawText(g, "B: FAR + SIDE LANES", 11, White, 1024, 339);
-        DrawText(g, game.Shield > 0 ? $"SHIELD  {game.Shield}" : "SHIELD  —", 12, Green, 1024, 369, style: FontStyle.Bold);
-        DrawText(g, game.RepairCrew > 0 ? $"REPAIR  {game.RepairCrew}" : "REPAIR  —", 12, Green, 1024, 392, style: FontStyle.Bold);
-        if (game.SignalBoost > 0) DrawText(g, $"SIGNAL  {game.SignalBoost:0}s", 11, Cyan, 1024, 414);
+        FillRound(g, Panel, 1012, 272, 176, 169, 15);
+        DrawText(g, "SCAN ENERGY", 12, Muted, 1024, 281, style: FontStyle.Bold);
+        FillRound(g, Border, 1024, 308, 152, 12, 6);
+        FillRound(g, Cyan, 1024, 308, 152 * game.ScanMeter, 12, 6);
+        DrawText(g, "COOLDOWN", 11, Muted, 1024, 329, style: FontStyle.Bold);
+        DrawText(g, game.ScanCooldownRemaining > 0 ? $"{game.ScanCooldownRemaining:0.0}s" : "READY",
+            11, game.ScanCooldownRemaining > 0 ? Amber : Green, 1145, 329, style: FontStyle.Bold);
+        FillRound(g, Border, 1024, 352, 152, 10, 5);
+        FillRound(g, game.ScanCooldownRemaining > 0 ? Amber : Green,
+            1024, 352, 152 * game.ScanCooldownProgress, 10, 5);
+        DrawText(g, game.Shield > 0 ? $"SHIELD  {game.Shield}" : "SHIELD  —", 11, Green, 1024, 370, style: FontStyle.Bold);
+        DrawText(g, game.RepairCrew > 0 ? $"REPAIR  {game.RepairCrew}" : "REPAIR  —", 11, Green, 1024, 392, style: FontStyle.Bold);
+        DrawText(g, game.SignalBoost > 0 ? $"SIGNAL  {game.SignalBoost:0}s" : "B: FAR + SIDE LANES",
+            11, game.SignalBoost > 0 ? Cyan : Muted, 1024, 413);
         DrawText(g, "ROAD DISTRESS", 12, Muted, 1018, 448, style: FontStyle.Bold);
         FillEllipse(g, Red, 1019, 471, 9, 9); DrawText(g, "MAJOR  /  DODGE", 10, White, 1038, 466);
         FillEllipse(g, Amber, 1019, 490, 9, 9); DrawText(g, "MINOR  /  BRAKE", 10, White, 1038, 485);
         FillEllipse(g, Green, 1019, 509, 9, 9); DrawText(g, "HUMP  /  BRAKE", 10, White, 1038, 504);
         FillEllipse(g, Cyan, 1019, 528, 9, 9); DrawText(g, "PATCH  /  BRAKE", 10, White, 1038, 523);
         UiButton(g, "BRAKE", 1012, 550, 176, 70, White, game.BrakeHeld);
-        UiButton(g, "SCAN", 1012, 630, 176, 70, Cyan, mouseScan);
+        UiButton(g, game.ScanCooldownRemaining > 0 ? "COOLING" : game.ScanMeter < .25f ? "CHARGING" : "SCAN",
+            1012, 630, 176, 70, game.ScanCooldownRemaining > 0 ? Amber : Cyan, game.IsScanning);
         DrawText(g, "TAP ROAD SIDES TO STEER", 12, White, 600, 686, true, true, FontStyle.Bold);
     }
 
