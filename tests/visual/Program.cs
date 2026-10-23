@@ -11,6 +11,26 @@ using (var crashWave = resources.GetManifestResourceStream(resources.GetManifest
 using (var crashPlayer = new SoundPlayer(crashWave)) crashPlayer.Load();
 if (!resources.GetManifestResourceNames().Any(n => n.EndsWith("roadsense-app.ico", StringComparison.OrdinalIgnoreCase)))
     throw new Exception("RoadSense window icon is missing");
+var inputHandler = typeof(GameForm).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic,
+    null, [typeof(object), typeof(KeyEventArgs)], null)!;
+var keyUpHandler = typeof(GameForm).GetMethod("OnKeyUp", BindingFlags.Instance | BindingFlags.NonPublic,
+    null, [typeof(object), typeof(KeyEventArgs)], null)!;
+using (var inputForm = new GameForm())
+{
+    var inputModel = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(inputForm)!;
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.W)]);
+    if (inputModel.Phase != GamePhase.Countdown || !inputModel.AccelerateHeld)
+        throw new Exception("W must start the game and stay held through countdown");
+    for (int i = 0; i < 190; i++) inputModel.Update(1f / 60f);
+    inputModel.Update(1f / 60f);
+    if (inputModel.Phase != GamePhase.Playing || inputModel.EffectiveSpeed < inputModel.Speed * 1.74f)
+        throw new Exception("W key must boost speed once gameplay begins");
+    keyUpHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.W)]);
+    inputModel.Update(1f / 60f);
+    if (inputModel.AccelerateHeld || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
+        throw new Exception("Releasing W must restore cruise speed");
+}
 using var form = new GameForm();
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)

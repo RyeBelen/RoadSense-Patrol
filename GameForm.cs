@@ -93,7 +93,16 @@ public sealed class GameForm : Form
         }
         if (game.Phase == GamePhase.Attract)
         {
-            if (!e.Control && !e.Alt && e.KeyCode != Keys.ShiftKey) StartGame();
+            if (!e.Control && !e.Alt && e.KeyCode != Keys.ShiftKey)
+            {
+                StartGame();
+                if (e.KeyCode == Keys.W) game.AccelerateHeld = true;
+            }
+            return;
+        }
+        if (game.Phase == GamePhase.Countdown)
+        {
+            if (e.KeyCode == Keys.W) game.AccelerateHeld = true;
             return;
         }
         if (game.Phase == GamePhase.Results)
