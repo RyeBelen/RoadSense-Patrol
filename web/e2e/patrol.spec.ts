@@ -1,0 +1,83 @@
+import { test, expect, type Page } from '@playwright/test';
+
+interface RunState { phase: string; lane: number; x: number; boost: number; brake: boolean; scanning: boolean; scanCooldown: number; scanEnergy: number; time: number; camera: string }
+function state(page: Page): Promise<RunState> {
+  return page.evaluate(() => (window as unknown as { __patrol: () => RunState }).__patrol());
+}
+
+test('desktop patrol supports driving, scanner, pause, replay and persisted rankings', async ({page})=>{
+  const errors: string[]=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('/');
+  await expect(page.getByRole('button',{name:'Start patrol',exact:true})).toBeVisible();
+  await page.screenshot({path:'../.local/patrol-menu-desktop.png'});
+  await page.getByRole('button',{name:'How to play',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Read the road.'})).toBeVisible();
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await page.getByRole('button',{name:'Start patrol',exact:true}).focus();
+  await page.keyboard.press('Space');
+  await expect.poll(async()=> (await state(page)).phase).toBe('playing');
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async()=> (await state(page)).x).toBeGreaterThan(3.4);
+  await page.keyboard.press('ArrowLeft');
+  await expect.poll(async()=> (await state(page)).lane).toBe(1);
+  await page.keyboard.down('w');
+  await expect.poll(async()=> (await state(page)).boost).toBeGreaterThan(.7);
+  await page.keyboard.up('w');
+  await page.keyboard.down('s');
+  await expect.poll(async()=> (await state(page)).brake).toBe(true);
+  await page.keyboard.up('s');
+  await page.keyboard.down('b');
+  await expect.poll(async()=> (await state(page)).scanEnergy).toBeLessThan(.8);
+  await page.screenshot({path:'../.local/patrol-gameplay-desktop.png'});
+  await page.keyboard.up('b');
+  await expect.poll(async()=> (await state(page)).scanCooldown).toBeGreaterThan(2);
+  await page.keyboard.press('c');
+  await expect.poll(async()=> (await state(page)).camera).toBe('hood');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading',{name:'Take a breather.'})).toBeVisible();
+  const pausedTime=(await state(page)).time;
+  await page.getByRole('button',{name:'Field guide',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Read the road.'})).toBeVisible();
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  expect((await state(page)).time).toBe(pausedTime);
+  await page.getByRole('button',{name:'Resume patrol',exact:true}).click();
+  await expect.poll(async()=> (await state(page)).phase).toBe('playing');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'End patrol',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'End of the road.'})).toBeVisible();
+  await page.getByLabel('Your initials').fill('TST');
+  await page.getByRole('button',{name:'Save score',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Score saved',exact:true})).toBeDisabled();
+  await page.reload();
+  await page.getByRole('button',{name:'Patrol board',exact:true}).click();
+  await expect(page.locator('.leaderboard')).toContainText('TST');
+  await page.getByRole('button',{name:'Start a patrol',exact:true}).click();
+  await expect.poll(async()=> (await state(page)).phase).toBe('countdown');
+  expect(errors).toEqual([]);
+});
+
+test('phone layout keeps controls visible in portrait and landscape',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/');
+  await expect(page.getByRole('button',{name:'Start patrol',exact:true})).toBeInViewport();
+  await page.screenshot({path:'../.local/patrol-menu-phone.png'});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+  await page.getByRole('button',{name:'Start patrol',exact:true}).click();
+  await expect.poll(async()=> (await state(page)).phase).toBe('playing');
+  await page.getByRole('button',{name:'Steer left',exact:true}).click();
+  await expect.poll(async()=> (await state(page)).lane).toBe(0);
+  const scan=page.getByRole('button',{name:'Hold to scan',exact:true});
+  await expect(scan).toBeInViewport();
+  const bounds=(await scan.boundingBox())!;
+  await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  await page.mouse.down();
+  await expect.poll(async()=> (await state(page)).scanning).toBe(true);
+  await page.mouse.up();
+  await expect.poll(async()=> (await state(page)).scanCooldown).toBeGreaterThan(2);
+  await page.screenshot({path:'../.local/patrol-gameplay-phone.png'});
+  await page.setViewportSize({width:667,height:375});
+  for(const name of ['Steer left','Steer right','Hold to brake','Hold to scan','Hold to accelerate']) await expect(page.getByRole('button',{name,exact:true})).toBeInViewport();
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight)).toBe(375);
+  await page.screenshot({path:'../.local/patrol-gameplay-landscape.png'});
+});

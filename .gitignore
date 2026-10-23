@@ -8,6 +8,13 @@ tests/**/obj/
 .vs/
 *.user
 *.suo
+node_modules/
+web/dist/
+web/.env*
+!web/.env.example
+.local/
+web/test-results/
+web/playwright-report/
 
 # Keep the game poster; local mockups and screenshots are review artifacts.
 concept/*.png
