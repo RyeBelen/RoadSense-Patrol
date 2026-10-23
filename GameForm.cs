@@ -15,6 +15,7 @@ public sealed class GameForm : Form
     private readonly SoundBank audio = new();
     private readonly Image? roadsidePoster = LoadRoadsidePoster();
     private readonly Image? brandLogo = LoadBrandLogo();
+    private readonly Image? majorPotholeSprite = LoadMajorPotholeSprite();
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 16 };
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private double previousTime, accumulator, idleTime, roadScroll;
@@ -319,6 +320,18 @@ public sealed class GameForm : Form
         return new Bitmap(image);
     }
 
+    private static Image? LoadMajorPotholeSprite()
+    {
+        var assembly = typeof(GameForm).Assembly;
+        string? name = assembly.GetManifestResourceNames().FirstOrDefault(n =>
+            n.EndsWith("major-pothole.png", StringComparison.OrdinalIgnoreCase));
+        if (name is null) return null;
+        using var stream = assembly.GetManifestResourceStream(name);
+        if (stream is null) return null;
+        using var image = Image.FromStream(stream);
+        return new Bitmap(image);
+    }
+
     private void DrawBrand(Graphics g, float x, float y, bool large = false)
     {
         float icon = large ? 72 : 52;
@@ -452,52 +465,66 @@ public sealed class GameForm : Form
         }
         else if (type == HazardType.Pothole)
         {
-            // Faceted broken asphalt around a deep, irregular cavity, based on the reference.
-            var shadow = JaggedPoints(x + 2, y + 5, 62, 52);
-            var rim = JaggedPoints(x, y, 59, 48);
-            var cavity = JaggedPoints(x - 2, y + 2, 44, 36);
-            using (var brush = new SolidBrush(Color.FromArgb(19, 24, 30))) g.FillPolygon(brush, shadow);
-            using (var brush = new SolidBrush(Color.FromArgb(67, 75, 80))) g.FillPolygon(brush, rim);
+            if (majorPotholeSprite is not null)
+            {
+                var old = g.InterpolationMode;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.DrawImage(majorPotholeSprite, x - 82, y - 65, 164, 130);
+                g.InterpolationMode = old;
+                return;
+            }
+            // An asymmetric opening with a thick, fractured rim like the reference.
+            PointF[] rim = [new(x - 72, y - 19), new(x - 65, y - 37), new(x - 52, y - 48),
+                new(x - 35, y - 47), new(x - 22, y - 60), new(x - 4, y - 53),
+                new(x + 13, y - 58), new(x + 29, y - 49), new(x + 49, y - 52),
+                new(x + 58, y - 35), new(x + 70, y - 19), new(x + 65, y + 3),
+                new(x + 70, y + 20), new(x + 55, y + 39), new(x + 40, y + 48),
+                new(x + 18, y + 56), new(x + 2, y + 52), new(x - 19, y + 61),
+                new(x - 40, y + 50), new(x - 60, y + 37), new(x - 68, y + 15)];
+            PointF[] cavity = [new(x - 59, y - 16), new(x - 52, y - 27), new(x - 43, y - 35),
+                new(x - 26, y - 35), new(x - 17, y - 47), new(x - 1, y - 41),
+                new(x + 12, y - 46), new(x + 25, y - 38), new(x + 38, y - 40),
+                new(x + 47, y - 28), new(x + 56, y - 13), new(x + 53, y + 5),
+                new(x + 57, y + 17), new(x + 43, y + 30), new(x + 31, y + 39),
+                new(x + 15, y + 46), new(x, y + 43), new(x - 16, y + 48),
+                new(x - 33, y + 39), new(x - 48, y + 28), new(x - 56, y + 12)];
+            var shadow = rim.Select(p => new PointF(p.X + 3, p.Y + 7)).ToArray();
+            using (var brush = new SolidBrush(Color.FromArgb(15, 20, 28))) g.FillPolygon(brush, shadow);
+            using (var glow = new Pen(Color.FromArgb(45, 31, 39, 49), 12) { LineJoin = LineJoin.Round })
+                g.DrawPolygon(glow, rim);
+            using (var edge = new Pen(Color.FromArgb(85, 94, 104), 3) { LineJoin = LineJoin.Round })
+                g.DrawPolygon(edge, rim);
+            using (var brush = new SolidBrush(Color.FromArgb(38, 44, 54))) g.FillPolygon(brush, rim);
             for (int i = 0; i < rim.Length; i++)
             {
-                PointF[] facet = [rim[i], rim[(i + 1) % rim.Length], cavity[i]];
-                using var brush = new SolidBrush(i % 3 == 0 ? Color.FromArgb(83, 91, 96) :
-                    i % 3 == 1 ? Color.FromArgb(44, 51, 58) : Color.FromArgb(53, 61, 66));
+                int next = (i + 1) % rim.Length;
+                PointF[] facet = [rim[i], rim[next], cavity[next], cavity[i]];
+                using var brush = new SolidBrush(i % 4 == 0 ? Color.FromArgb(82, 91, 103) :
+                    i % 4 == 1 ? Color.FromArgb(24, 31, 43) :
+                    i % 4 == 2 ? Color.FromArgb(58, 67, 80) : Color.FromArgb(36, 44, 56));
                 g.FillPolygon(brush, facet);
             }
-            using (var brush = new SolidBrush(Color.FromArgb(16, 22, 30))) g.FillPolygon(brush, cavity);
-            using (var pen = new Pen(Color.FromArgb(8, 13, 19), 4) { LineJoin = LineJoin.Round })
+            using (var brush = new SolidBrush(Color.FromArgb(38, 48, 62))) g.FillPolygon(brush, cavity);
+            using (var pen = new Pen(Color.FromArgb(10, 17, 27), 5) { LineJoin = LineJoin.Round })
                 g.DrawPolygon(pen, cavity);
-            using (var fissure = new Pen(Color.FromArgb(12, 18, 25), 3) { LineJoin = LineJoin.Round })
+            using (var fissure = new Pen(Color.FromArgb(15, 24, 36), 2.5f) { LineJoin = LineJoin.Round })
             {
-                g.DrawLines(fissure, new PointF[] { new(x - 30, y - 31), new(x - 44, y - 44), new(x - 51, y - 60) });
-                g.DrawLines(fissure, new PointF[] { new(x + 34, y - 24), new(x + 48, y - 37), new(x + 57, y - 51) });
-                g.DrawLines(fissure, new PointF[] { new(x + 23, y + 25), new(x + 39, y + 43), new(x + 45, y + 58) });
-                g.DrawLines(fissure, new PointF[] { new(x - 9, y + 7), new(x + 2, y + 12), new(x + 12, y + 23) });
-                g.DrawLines(fissure, new PointF[] { new(x - 24, y - 3), new(x - 16, y - 11), new(x - 11, y - 21) });
+                g.DrawLines(fissure, new PointF[] { new(x - 25, y - 34), new(x - 19, y - 19), new(x - 18, y - 4) });
+                g.DrawLines(fissure, new PointF[] { new(x + 28, y - 36), new(x + 22, y - 21), new(x + 28, y - 10) });
+                g.DrawLines(fissure, new PointF[] { new(x + 11, y + 8), new(x + 17, y + 17), new(x + 30, y + 22) });
+                g.DrawLines(fissure, new PointF[] { new(x - 43, y + 24), new(x - 31, y + 17), new(x - 24, y + 7) });
             }
-            using (var shard = new SolidBrush(Color.FromArgb(62, 70, 75)))
+            using (var fracture = new Pen(Color.FromArgb(15, 22, 32), 3) { LineJoin = LineJoin.Round })
             {
-                g.FillPolygon(shard, new PointF[] { new(x - 65, y + 19), new(x - 58, y + 10), new(x - 52, y + 23) });
-                g.FillPolygon(shard, new PointF[] { new(x + 58, y - 5), new(x + 69, y - 11), new(x + 67, y + 4) });
-                g.FillPolygon(shard, new PointF[] { new(x + 42, y + 48), new(x + 51, y + 42), new(x + 55, y + 55) });
+                g.DrawLines(fracture, new PointF[] { new(x - 61, y - 32), new(x - 75, y - 44), new(x - 70, y - 57) });
+                g.DrawLines(fracture, new PointF[] { new(x + 54, y - 37), new(x + 67, y - 51), new(x + 72, y - 61) });
+                g.DrawLines(fracture, new PointF[] { new(x + 51, y + 37), new(x + 67, y + 45), new(x + 72, y + 57) });
             }
-            FillEllipse(g, Color.FromArgb(45, 53, 59), x - 68, y - 23, 9, 7);
-            FillEllipse(g, Color.FromArgb(50, 57, 63), x + 51, y - 34, 10, 8);
-            FillEllipse(g, Color.FromArgb(54, 61, 66), x - 48, y + 43, 12, 8);
+            FillEllipse(g, Color.FromArgb(48, 57, 69), x - 84, y - 18, 10, 8);
+            FillEllipse(g, Color.FromArgb(48, 57, 69), x + 74, y - 34, 12, 9);
+            FillEllipse(g, Color.FromArgb(56, 65, 75), x - 66, y + 54, 14, 9);
+            FillEllipse(g, Color.FromArgb(48, 57, 69), x + 52, y + 58, 11, 7);
         }
-    }
-
-    private static PointF[] JaggedPoints(float x, float y, float rx, float ry)
-    {
-        float[] teeth = [1.00f, .86f, 1.06f, .91f, 1.09f, .88f, 1.03f, .93f,
-                         1.08f, .90f, 1.02f, .87f, 1.07f, .92f, 1.04f, .89f];
-        return Enumerable.Range(0, teeth.Length).Select(i =>
-        {
-            double a = i * Math.PI * 2 / teeth.Length;
-            return new PointF(x + (float)Math.Cos(a) * rx * teeth[i],
-                y + (float)Math.Sin(a) * ry * teeth[i]);
-        }).ToArray();
     }
 
     private void DrawPickup(Graphics g, float x, float y, PickupType pickup)
