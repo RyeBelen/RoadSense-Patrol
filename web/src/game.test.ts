@@ -17,7 +17,7 @@ test("hazards stay hidden until the scanner finds them, then remain revealed aft
   const hazard = game.addObject("pothole", 0, -40);
   game.update(1 / 60);
   assert.equal(hazardVisible(hazard), false);
-  assert.equal(game.radarStartZ, -65);
+  assert.equal(game.radarStartZ, -40);
   game.scanHeld = true;
   game.update(1 / 60);
   assert.equal(game.radarStartZ, -115);
@@ -25,7 +25,7 @@ test("hazards stay hidden until the scanner finds them, then remain revealed aft
   game.scanHeld = false;
   game.turn(1);
   game.update(1 / 60);
-  assert.equal(game.radarStartZ, -65);
+  assert.equal(game.radarStartZ, -40);
   assert.equal(hazardVisible(hazard), true);
   hazard.resolved = true;
   assert.equal(hazardVisible(hazard), false);
@@ -163,16 +163,19 @@ test("depleted scanner waits five seconds and requires release before rearming",
   game.update(1 / 60);
   assert.equal(game.scanning, true);
 });
-test("normal radar marks only its lane and scan reveals neighboring hazards", () => {
+test("normal radar marks nearby hazards in its lane and scan reveals farther and neighboring hazards", () => {
   const game = playing();
-  const center = game.addObject("minor", 1, -40);
-  const left = game.addObject("pothole", 0, -40);
+  const center = game.addObject("minor", 1, -25);
+  const left = game.addObject("pothole", 0, -25);
+  const distant = game.addObject("hump", 1, -50);
   game.update(1 / 60);
   assert.equal(center.detected, true);
   assert.equal(left.detected, false);
+  assert.equal(distant.detected, false);
   game.scanHeld = true;
   game.update(1 / 60);
   assert.equal(left.detected, true);
+  assert.equal(distant.detected, true);
   game.turn(1);
   assert.equal(left.detected, true);
 });

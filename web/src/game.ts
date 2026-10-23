@@ -173,11 +173,11 @@ export class Game {
     const range = this.wideScan
       ? -115
       : this.time < 20
-        ? -65
+        ? -40
         : this.time < 55
-          ? -58
-          : -50;
-    return Math.min(range, this.playerZ - 32);
+          ? -35
+          : -30;
+    return Math.min(range, this.playerZ - 22);
   }
 
   start(seed = Math.floor(Math.random() * 2147483647)) {

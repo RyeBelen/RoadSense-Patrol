@@ -20,6 +20,7 @@ test('desktop patrol supports driving, scanner, pause, replay and persisted rank
   await expect.poll(async()=> (await state(page)).hazards.length).toBeGreaterThan(0);
   expect((await state(page)).hazards.every(hazard=>!hazard.visible)).toBe(true);
   expect((await state(page)).radarWide).toBe(false);
+  expect((await state(page)).radarStartZ).toBe(-40);
   await page.screenshot({path:'../.local/patrol-normal-radar.png'});
   await page.keyboard.press('ArrowRight');
   await expect.poll(async()=> (await state(page)).x).toBeGreaterThan(3.4);
@@ -34,6 +35,7 @@ test('desktop patrol supports driving, scanner, pause, replay and persisted rank
   await page.keyboard.down('b');
   await expect.poll(async()=> (await state(page)).scanEnergy).toBeLessThan(.8);
   expect((await state(page)).radarWide).toBe(true);
+  expect((await state(page)).radarStartZ).toBe(-115);
   await expect.poll(async()=> (await state(page)).hazards.some(hazard=>hazard.visible&&hazard.detected)).toBe(true);
   expect((await state(page)).hazards.every(hazard=>hazard.visible===(hazard.detected&&!hazard.resolved))).toBe(true);
   await page.screenshot({path:'../.local/patrol-gameplay-desktop.png'});
