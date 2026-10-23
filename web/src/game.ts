@@ -26,6 +26,8 @@ export interface RouteEvent {
 }
 export const LANE_WIDTH = 3.5;
 export const laneX = (lane: number) => (lane - 1) * LANE_WIDTH;
+export const hazardVisible = (object: RoadObject) =>
+  object.detected && !object.resolved;
 export const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 export const isHazard = (kind: ObjectKind): kind is Hazard =>
@@ -166,6 +168,16 @@ export class Game {
   }
   get wideScan() {
     return this.scanning || this.signal > 0;
+  }
+  get radarStartZ() {
+    const range = this.wideScan
+      ? -115
+      : this.time < 20
+        ? -65
+        : this.time < 55
+          ? -58
+          : -50;
+    return Math.min(range, this.playerZ - 32);
   }
 
   start(seed = Math.floor(Math.random() * 2147483647)) {
@@ -504,7 +516,7 @@ export class Game {
         if (
           isHazard(object.kind) &&
           !object.detected &&
-          object.z > (this.wideScan ? -115 : -65) &&
+          object.z > this.radarStartZ &&
           object.z < this.playerZ &&
           (object.lane === this.lane || this.wideScan)
         ) {

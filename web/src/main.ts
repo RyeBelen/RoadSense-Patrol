@@ -102,7 +102,7 @@ function button(id: string, action: () => void) {
 function guide() {
   return `<section class="modal wide" aria-labelledby="guide-title"><div class="panel-heading"><span class="section-label">Field guide</span><button id="back" class="text-button">Back</button></div><h1 id="guide-title">Read the road.</h1><p>Spot hazards early. A clean response builds your score multiplier, up to ×8.</p>
     <div class="hazard-guide"><div><span class="hazard-sample pothole"></span><h2>Major potholes</h2><p>Change lane. Braking alone won't protect you.</p></div><div><span class="hazard-sample hump"></span><h2>Rough road</h2><p>Hold Brake for minor potholes, patches, and speed humps. You can also steer around them.</p></div><div><span class="hazard-sample traffic"></span><h2>Traffic</h2><p>Avoid cars and trucks. Watch for motorcycles changing lanes as your patrol progresses.</p></div></div>
-    <div class="guide-bottom"><div><h2>Your scanner</h2><p>Radar marks hazards in your lane. Hold Scan to detect all lanes farther ahead and double clean-hazard points. Release for a 3-second cooldown, or 5 seconds if depleted.</p><h2>Roadside support</h2><p>Blue shields absorb a road-hazard hit. Green repair tokens clear the next hazard. Gold signal tokens give 5 seconds of wide radar.</p></div><div class="keys"><div><span>Steer</span><span><kbd>A</kbd><kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd></span></div><div><span>Accelerate</span><span><kbd>W</kbd> / <kbd>↑</kbd></span></div><div><span>Brake</span><span><kbd>S</kbd> / <kbd>↓</kbd></span></div><div><span>Scan</span><kbd>B</kbd></div><div><span>Camera</span><kbd>C</kbd></div><div><span>Pause / mute</span><span><kbd>Esc</kbd> / <kbd>M</kbd></span></div></div></div>
+    <div class="guide-bottom"><div><h2>Your scanner</h2><p>Road hazards stay hidden until radar reveals them in your lane. Hold Scan to detect all lanes farther ahead and double clean-hazard points. Release for a 3-second cooldown, or 5 seconds if depleted.</p><h2>Roadside support</h2><p>Blue shields absorb a road-hazard hit. Green repair tokens clear the next hazard. Gold signal tokens give 5 seconds of wide radar.</p></div><div class="keys"><div><span>Steer</span><span><kbd>A</kbd><kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd></span></div><div><span>Accelerate</span><span><kbd>W</kbd> / <kbd>↑</kbd></span></div><div><span>Brake</span><span><kbd>S</kbd> / <kbd>↓</kbd></span></div><div><span>Scan</span><kbd>B</kbd></div><div><span>Camera</span><kbd>C</kbd></div><div><span>Pause / mute</span><span><kbd>Esc</kbd> / <kbd>M</kbd></span></div></div></div>
     <p class="fine-print">Touch controls appear on touchscreens. Hazards and detections are simulated. This game does not run the RoadSense AI model.</p></section>`;
 }
 function rankings() {
@@ -457,6 +457,9 @@ try {
       scanEnergy: game.scanEnergy,
       scanCooldown: game.scanCooldown,
       scanning: game.scanning,
+      radarWide: game.wideScan,
+      radarStartZ: game.radarStartZ,
+      hazards: world.getHazardVisibility(game),
       boost: game.boost,
       brake: game.brake,
       objects: game.objects.length,

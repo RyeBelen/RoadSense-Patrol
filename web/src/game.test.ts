@@ -9,6 +9,27 @@ import {
   laneX,
 } from "./game.ts";
 import { loadScores, saveScore, SCORE_KEY } from "./storage.ts";
+import { hazardVisible } from "./game.ts";
+
+test("hazards stay hidden until the scanner finds them, then remain revealed after a lane change", () => {
+  const game = new Game();
+  game.phase = "playing";
+  const hazard = game.addObject("pothole", 0, -40);
+  game.update(1 / 60);
+  assert.equal(hazardVisible(hazard), false);
+  assert.equal(game.radarStartZ, -65);
+  game.scanHeld = true;
+  game.update(1 / 60);
+  assert.equal(game.radarStartZ, -115);
+  assert.equal(hazardVisible(hazard), true);
+  game.scanHeld = false;
+  game.turn(1);
+  game.update(1 / 60);
+  assert.equal(game.radarStartZ, -65);
+  assert.equal(hazardVisible(hazard), true);
+  hazard.resolved = true;
+  assert.equal(hazardVisible(hazard), false);
+});
 
 test("blocked browser storage does not break rankings or score entry", () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");

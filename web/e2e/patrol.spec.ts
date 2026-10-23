@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-interface RunState { phase: string; lane: number; x: number; boost: number; brake: boolean; scanning: boolean; scanCooldown: number; scanEnergy: number; time: number; camera: string }
+interface RunState { phase: string; lane: number; x: number; boost: number; brake: boolean; scanning: boolean; scanCooldown: number; scanEnergy: number; time: number; camera: string; radarWide: boolean; radarStartZ: number; hazards: { detected: boolean; resolved: boolean; visible: boolean }[] }
 function state(page: Page): Promise<RunState> {
   return page.evaluate(() => (window as unknown as { __patrol: () => RunState }).__patrol());
 }
@@ -17,6 +17,10 @@ test('desktop patrol supports driving, scanner, pause, replay and persisted rank
   await page.getByRole('button',{name:'Start patrol',exact:true}).focus();
   await page.keyboard.press('Space');
   await expect.poll(async()=> (await state(page)).phase).toBe('playing');
+  await expect.poll(async()=> (await state(page)).hazards.length).toBeGreaterThan(0);
+  expect((await state(page)).hazards.every(hazard=>!hazard.visible)).toBe(true);
+  expect((await state(page)).radarWide).toBe(false);
+  await page.screenshot({path:'../.local/patrol-normal-radar.png'});
   await page.keyboard.press('ArrowRight');
   await expect.poll(async()=> (await state(page)).x).toBeGreaterThan(3.4);
   await page.keyboard.press('ArrowLeft');
@@ -29,6 +33,9 @@ test('desktop patrol supports driving, scanner, pause, replay and persisted rank
   await page.keyboard.up('s');
   await page.keyboard.down('b');
   await expect.poll(async()=> (await state(page)).scanEnergy).toBeLessThan(.8);
+  expect((await state(page)).radarWide).toBe(true);
+  await expect.poll(async()=> (await state(page)).hazards.some(hazard=>hazard.visible&&hazard.detected)).toBe(true);
+  expect((await state(page)).hazards.every(hazard=>hazard.visible===(hazard.detected&&!hazard.resolved))).toBe(true);
   await page.screenshot({path:'../.local/patrol-gameplay-desktop.png'});
   await page.keyboard.up('b');
   await expect.poll(async()=> (await state(page)).scanCooldown).toBeGreaterThan(2);

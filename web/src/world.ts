@@ -4,6 +4,7 @@ import {
   LANE_WIDTH,
   isHazard,
   isTraffic,
+  hazardVisible,
   laneX,
   seededRandom,
   type ObjectKind,
@@ -323,6 +324,7 @@ export class World {
   private objects = new Map<number, THREE.Group>();
   private templates = new Map<string, THREE.Group>();
   private scanner: THREE.Mesh;
+  private scannerEdges: THREE.Line;
   private scanLine: THREE.Mesh;
   private shield: THREE.Mesh;
   private particles: THREE.InstancedMesh;
@@ -375,14 +377,14 @@ export class World {
     this.buildScenery();
     this.scene.add(this.player);
     this.camera.position.set(7, 6, 14);
-    const scannerShape = new THREE.Shape();
-    scannerShape.moveTo(-1, 0);
-    scannerShape.lineTo(-5.2, -70);
-    scannerShape.lineTo(5.2, -70);
-    scannerShape.lineTo(1, 0);
-    scannerShape.closePath();
+    const scannerGeometry = new THREE.BufferGeometry();
+    scannerGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array(18), 3),
+    );
+    scannerGeometry.setIndex([0, 2, 1, 0, 3, 2, 0, 4, 3, 0, 5, 4]);
     this.scanner = new THREE.Mesh(
-      new THREE.ShapeGeometry(scannerShape),
+      scannerGeometry,
       new THREE.MeshBasicMaterial({
         color: 0x48c9e7,
         transparent: true,
@@ -391,9 +393,24 @@ export class World {
         side: THREE.DoubleSide,
       }),
     );
-    this.scanner.rotation.x = Math.PI / 2;
-    this.scanner.position.y = 0.09;
+    this.scanner.frustumCulled = false;
     this.scene.add(this.scanner);
+    const edgeGeometry = new THREE.BufferGeometry();
+    edgeGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array(18), 3),
+    );
+    this.scannerEdges = new THREE.Line(
+      edgeGeometry,
+      new THREE.LineBasicMaterial({
+        color: 0x6be0f4,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false,
+      }),
+    );
+    this.scannerEdges.frustumCulled = false;
+    this.scene.add(this.scannerEdges);
     this.scanLine = new THREE.Mesh(
       boxGeometry,
       new THREE.MeshBasicMaterial({
@@ -707,7 +724,7 @@ export class World {
           const beacon = model.getObjectByName("beacon")!;
           beacon.visible = object.detected && !object.resolved;
           beacon.position.y = 1.65 + Math.sin(this.motionTime * 4) * 0.12;
-          model.visible = !object.resolved || object.z >= game.playerZ;
+          model.visible = hazardVisible(object);
         } else if (!isTraffic(object.kind)) {
           model.rotation.y = this.motionTime * 1.4;
           model.position.y = 0.1 + Math.sin(this.motionTime * 3) * 0.15;
@@ -724,13 +741,61 @@ export class World {
         this.scene.remove(model);
         this.objects.delete(id);
       }
-    this.scanner.visible = this.scanLine.visible =
-      game.wideScan && game.phase === "playing";
-    this.scanner.position.z = game.playerZ;
+    // The beam matches the gameplay detection bounds. Normal radar follows one
+    // lane; Scan Boost covers the whole road and reaches farther ahead.
+    this.scanner.visible =
+      this.scannerEdges.visible =
+      this.scanLine.visible =
+        game.phase === "playing" || game.phase === "paused";
+    const farX = game.wideScan ? 0 : laneX(game.lane);
+    const farWidth = game.wideScan ? 5.24 : 1.6;
+    const nearZ = game.playerZ - 2;
+    const beam = [
+      game.x - 1.05,
+      0.09,
+      nearZ,
+      farX - farWidth,
+      0.09,
+      nearZ - 8,
+      farX - farWidth,
+      0.09,
+      game.radarStartZ,
+      farX + farWidth,
+      0.09,
+      game.radarStartZ,
+      farX + farWidth,
+      0.09,
+      nearZ - 8,
+      game.x + 1.05,
+      0.09,
+      nearZ,
+    ];
+    for (const geometry of [
+      this.scanner.geometry,
+      this.scannerEdges.geometry,
+    ]) {
+      const position = geometry.getAttribute(
+        "position",
+      ) as THREE.BufferAttribute;
+      position.array.set(beam);
+      position.needsUpdate = true;
+    }
+    (this.scanner.material as THREE.MeshBasicMaterial).opacity = game.wideScan
+      ? 0.18
+      : 0.12;
+    (this.scannerEdges.material as THREE.LineBasicMaterial).opacity =
+      game.wideScan ? 0.85 : 0.55;
+    const pulse = (this.motionTime * 0.6) % 1;
+    const expansion = Math.min(1, (pulse * (nearZ - game.radarStartZ)) / 8);
     this.scanLine.position.set(
-      0,
+      game.x + (farX - game.x) * expansion,
       0.11,
-      game.playerZ - ((this.motionTime * 45) % 95),
+      nearZ + (game.radarStartZ - nearZ) * pulse,
+    );
+    this.scanLine.scale.set(
+      2.1 + (farWidth * 2 - 2.1) * expansion,
+      0.025,
+      0.15,
     );
     this.shield.visible = game.shield > 0 && !menu;
     this.shield.position
@@ -753,5 +818,16 @@ export class World {
       this.particles.instanceMatrix.needsUpdate = true;
     }
     this.renderer.render(this.scene, this.camera);
+  }
+  getHazardVisibility(game: Game) {
+    return game.objects
+      .filter((object) => isHazard(object.kind))
+      .map((object) => ({
+        id: object.id,
+        lane: object.lane,
+        detected: object.detected,
+        resolved: object.resolved,
+        visible: this.objects.get(object.id)?.visible ?? false,
+      }));
   }
 }

@@ -47,7 +47,7 @@ Changing tabs or losing window focus pauses the run and clears held controls. Th
 
 You start with three lives. Change lanes around major potholes and traffic. Brake or steer around minor potholes, road patches, and speed humps. Patches slow the car and subtract points; other unprotected road-hazard hits cost a life. Traffic collisions cost a life, with a short recovery period to prevent multiple simultaneous hits.
 
-Normal radar marks hazards in the current lane. Scan Boost reveals all lanes farther ahead and doubles clean-hazard points. Releasing it starts a three-second cooldown. Depleting it starts a five-second cooldown and requires releasing the button before reuse. Energy recharges while scanning is inactive.
+Potholes, patches, and humps are invisible until detected. The normal scanner displays a small beam ahead of the car and reveals hazards in its lane. Detected hazards stay visible after changing lanes, until passed. Scan Boost reveals all lanes farther ahead and doubles clean-hazard points. Releasing it starts a three-second cooldown. Depleting it starts a five-second cooldown and requires releasing the button before reuse. Energy recharges while scanning is inactive.
 
 Blue shield pickups protect against a road-hazard hit. Green repair pickups clear the next hazard. Gold signal pickups widen radar for five seconds. Every three clean hazards raise the multiplier, up to ×8. Cars arrive first, then swerving motorcycles and trucks. Speed and hazard density increase over time.
 
@@ -76,12 +76,17 @@ docker run --rm -p 8080:8080 roadsense-patrol-3d
 
 The image builds the app with Node.js, then serves it with unprivileged Nginx on port **8080**. `/health` returns `200 ok`. Hashed assets get immutable caching; the HTML is revalidated. The container has a health check.
 
-In Dokploy:
+The active **RoadSense Patrol 3D** project uses Dokploy's Drop deployment, which uploads committed source without requiring GitHub write access. To prepare an update, commit your changes and run this from the repository root:
 
-1. Create the **RoadSense Patrol 3D** project and a production application.
-2. Connect `https://github.com/clouddddd34/RoadSense-Patrol.git`, branch `main`, build path `/`.
-3. Select Dockerfile builds, path `web/Dockerfile`, context `.`.
-4. Attach the web domain to port `8080` and enable HTTPS with Let's Encrypt.
-5. Deploy the committed source. Verify `/health` and play a run in the deployed browser version.
+```sh
+git archive --format=zip --output=roadsense-patrol-3d.zip HEAD web .dockerignore LICENSE
+```
 
-Credentials belong in the existing Dokploy CLI configuration, never in source files or the web bundle. Deploy again after pushing updates to `main`. The original Windows game remains in the repository root.
+In the project's production application:
+
+1. Select Drop as the source and upload the archive with the build path left empty.
+2. Keep Dockerfile builds selected, with path `web/Dockerfile` and context `.`.
+3. The generated domain targets port `8080` and uses HTTPS with Let's Encrypt.
+4. Verify `/health` and play a run after the deployment completes.
+
+The same upload can use the Dokploy `application.dropDeployment` API with multipart fields `applicationId` and `zip`, authenticated through the existing CLI configuration. Credentials never belong in source files or the web bundle. If the committed web source is later pushed to GitHub, the application can instead use the repository's `main` branch. The original Windows game remains in the repository root.

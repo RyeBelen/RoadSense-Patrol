@@ -15,6 +15,7 @@ web/.env*
 .local/
 web/test-results/
 web/playwright-report/
+/roadsense-patrol-3d.zip
 
 # Keep the game poster; local mockups and screenshots are review artifacts.
 concept/*.png
