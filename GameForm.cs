@@ -254,11 +254,12 @@ public sealed class GameForm : Form
         }
         float carX = game.Phase == GamePhase.Attract
             ? 600 + (float)Math.Sin(idleTime * 1.2) * 130 : LaneCenter(game.CarLane);
-        DrawScanner(g, carX, 548);
+        float carY = game.Phase == GamePhase.Attract ? GameModel.PlayerY : game.CarY;
+        DrawScanner(g, carX, carY);
         if (game.Phase == GamePhase.Crashing)
         {
             var state = g.Save();
-            g.TranslateTransform(carX, 548 + game.CrashProgress * 75);
+            g.TranslateTransform(carX, carY + game.CrashProgress * 75);
             g.RotateTransform(game.CrashProgress * 210);
             DrawCar(g, 0, 0);
             g.Restore(state);
@@ -267,13 +268,13 @@ public sealed class GameForm : Form
                 double angle = i * Math.PI / 4;
                 float radius = 30 + game.CrashProgress * 125;
                 FillEllipse(g, i % 2 == 0 ? Amber : Red, carX + (float)Math.Cos(angle) * radius - 6,
-                    548 + (float)Math.Sin(angle) * radius - 6, 12, 12);
+                    carY + (float)Math.Sin(angle) * radius - 6, 12, 12);
             }
         }
         else
         {
             var state = g.Save();
-            g.TranslateTransform(carX, 548);
+            g.TranslateTransform(carX, carY);
             g.RotateTransform(game.Phase == GamePhase.Playing ? (game.Lane - game.CarLane) * 6 : 0);
             DrawCar(g, 0, 0);
             g.Restore(state);
@@ -451,18 +452,39 @@ public sealed class GameForm : Form
         }
         else if (type == HazardType.Pothole)
         {
-            var outer = JaggedPoints(x, y, 54, 42);
-            var inner = JaggedPoints(x, y + 2, 45, 33);
-            using (var asphaltRim = new SolidBrush(Color.FromArgb(66, 72, 76))) g.FillPolygon(asphaltRim, outer);
-            using (var cavity = new SolidBrush(Color.FromArgb(18, 23, 30))) g.FillPolygon(cavity, inner);
-            using (var rimEdge = new Pen(Color.FromArgb(107, 111, 109), 2)) g.DrawPolygon(rimEdge, outer);
-            using (var innerEdge = new Pen(Color.FromArgb(99, 107, 107), 2)) g.DrawPolygon(innerEdge, inner);
-            using var fissure = new Pen(Color.FromArgb(24, 29, 35), 4) { LineJoin = LineJoin.Round };
-            g.DrawLines(fissure, new PointF[] { new(x - 47, y - 31), new(x - 63, y - 44), new(x - 69, y - 54) });
-            g.DrawLines(fissure, new PointF[] { new(x + 42, y + 23), new(x + 62, y + 31), new(x + 68, y + 42) });
-            FillEllipse(g, Color.FromArgb(119, 122, 119), x - 38, y + 26, 8, 5);
-            FillEllipse(g, Color.FromArgb(104, 109, 110), x + 27, y - 31, 6, 4);
-            FillEllipse(g, Color.FromArgb(75, 81, 82), x + 40, y + 32, 4, 3);
+            // Faceted broken asphalt around a deep, irregular cavity, based on the reference.
+            var shadow = JaggedPoints(x + 2, y + 5, 62, 52);
+            var rim = JaggedPoints(x, y, 59, 48);
+            var cavity = JaggedPoints(x - 2, y + 2, 44, 36);
+            using (var brush = new SolidBrush(Color.FromArgb(19, 24, 30))) g.FillPolygon(brush, shadow);
+            using (var brush = new SolidBrush(Color.FromArgb(67, 75, 80))) g.FillPolygon(brush, rim);
+            for (int i = 0; i < rim.Length; i++)
+            {
+                PointF[] facet = [rim[i], rim[(i + 1) % rim.Length], cavity[i]];
+                using var brush = new SolidBrush(i % 3 == 0 ? Color.FromArgb(83, 91, 96) :
+                    i % 3 == 1 ? Color.FromArgb(44, 51, 58) : Color.FromArgb(53, 61, 66));
+                g.FillPolygon(brush, facet);
+            }
+            using (var brush = new SolidBrush(Color.FromArgb(16, 22, 30))) g.FillPolygon(brush, cavity);
+            using (var pen = new Pen(Color.FromArgb(8, 13, 19), 4) { LineJoin = LineJoin.Round })
+                g.DrawPolygon(pen, cavity);
+            using (var fissure = new Pen(Color.FromArgb(12, 18, 25), 3) { LineJoin = LineJoin.Round })
+            {
+                g.DrawLines(fissure, new PointF[] { new(x - 30, y - 31), new(x - 44, y - 44), new(x - 51, y - 60) });
+                g.DrawLines(fissure, new PointF[] { new(x + 34, y - 24), new(x + 48, y - 37), new(x + 57, y - 51) });
+                g.DrawLines(fissure, new PointF[] { new(x + 23, y + 25), new(x + 39, y + 43), new(x + 45, y + 58) });
+                g.DrawLines(fissure, new PointF[] { new(x - 9, y + 7), new(x + 2, y + 12), new(x + 12, y + 23) });
+                g.DrawLines(fissure, new PointF[] { new(x - 24, y - 3), new(x - 16, y - 11), new(x - 11, y - 21) });
+            }
+            using (var shard = new SolidBrush(Color.FromArgb(62, 70, 75)))
+            {
+                g.FillPolygon(shard, new PointF[] { new(x - 65, y + 19), new(x - 58, y + 10), new(x - 52, y + 23) });
+                g.FillPolygon(shard, new PointF[] { new(x + 58, y - 5), new(x + 69, y - 11), new(x + 67, y + 4) });
+                g.FillPolygon(shard, new PointF[] { new(x + 42, y + 48), new(x + 51, y + 42), new(x + 55, y + 55) });
+            }
+            FillEllipse(g, Color.FromArgb(45, 53, 59), x - 68, y - 23, 9, 7);
+            FillEllipse(g, Color.FromArgb(50, 57, 63), x + 51, y - 34, 10, 8);
+            FillEllipse(g, Color.FromArgb(54, 61, 66), x - 48, y + 43, 12, 8);
         }
     }
 
@@ -562,7 +584,7 @@ public sealed class GameForm : Form
         DrawText(g, "SPEEDOMETER", 12, Muted, 25, 483, style: FontStyle.Bold);
         DrawText(g, game.AccelerateHeld && !game.BrakeHeld ? "BOOST" : "CRUISE", 11, accent,
             151, 484, true, false, FontStyle.Bold, 68);
-        float fraction = Math.Clamp(game.EffectiveSpeed / (config.MaxSpeed * 1.35f), 0, 1);
+        float fraction = Math.Clamp(game.EffectiveSpeed / (config.MaxSpeed * 1.75f), 0, 1);
         using (var track = new Pen(Border, 7)) g.DrawArc(track, 42, 507, 116, 98, 155, 230);
         using (var progress = new Pen(accent, 7) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             g.DrawArc(progress, 42, 507, 116, 98, 155, 230 * fraction);
@@ -571,8 +593,8 @@ public sealed class GameForm : Form
             g.DrawLine(needle, 100, 556, 100 + (float)Math.Cos(angle) * 42, 556 + (float)Math.Sin(angle) * 42);
         FillEllipse(g, White, 96, 552, 8, 8);
         FillRound(g, Panel, 65, 532, 70, 36, 10);
-        DrawText(g, $"{game.EffectiveSpeed:0}", 25, White, 100, 550, true, true, FontStyle.Bold);
-        DrawText(g, $"CRUISE {game.Speed:0}", 10, Muted, 100, 570, true, true, FontStyle.Bold);
+        DrawText(g, $"{game.EffectiveSpeed:0} km/h", 19, White, 100, 550, true, true, FontStyle.Bold);
+        DrawText(g, $"CRUISE {game.Speed:0} km/h", 10, Muted, 100, 570, true, true, FontStyle.Bold);
     }
 
     private void UiButton(Graphics g, string label, float x, float y, float w, float h, Color accent, bool active = false)

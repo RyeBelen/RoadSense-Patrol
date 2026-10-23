@@ -40,10 +40,16 @@ speedModel.AccelerateHeld = true;
 speedModel.Update(1f / 60f);
 Check(speedModel.EffectiveSpeed > speedModel.Speed * 1.34f && speedModel.Speed > cruiseSpeed,
     "W boost raises effective speed without resetting progression");
+for (int i = 0; i < 65; i++) speedModel.Update(1f / 60f);
+Check(speedModel.CarY < 150 && speedModel.EffectiveSpeed > speedModel.Speed * 1.74f,
+    "holding W drives the car near the top of the road at higher speed");
 speedModel.AccelerateHeld = false;
 speedModel.Update(1f / 60f);
 Check(Math.Abs(speedModel.EffectiveSpeed - speedModel.Speed) < .01f && speedModel.Speed > cruiseSpeed,
     "releasing W returns to current progression speed");
+for (int i = 0; i < 50; i++) speedModel.Update(1f / 60f);
+Check(Math.Abs(speedModel.CarY - GameModel.PlayerY) < .01f,
+    "releasing W brings the car back to its cruise position");
 var steeringModel = new GameModel(new GameConfig { BoothSeed = 88 });
 steeringModel.Start();
 for (int i = 0; i < 190; i++) steeringModel.Update(1f / 60f);
@@ -64,6 +70,14 @@ steeringModel.Objects.Add(new RoadObject { Lane = 2, Hazard = HazardType.Pothole
 steeringModel.Update(1f / 60f);
 Check(steeringModel.Lives == 2,
     "completed lane change clears the former lane");
+var boostCollision = new GameModel(new GameConfig { BoothSeed = 14, StartingLives = 99 });
+boostCollision.Start();
+for (int i = 0; i < 190; i++) boostCollision.Update(1f / 60f);
+boostCollision.AccelerateHeld = true;
+for (int i = 0; i < 65; i++) boostCollision.Update(1f / 60f);
+boostCollision.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Pothole, Y = boostCollision.CarY - 1 });
+boostCollision.Update(1f / 60f);
+Check(boostCollision.Lives == 98, "boost collisions follow the car at the top of the road");
 bool crashed = false;
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
 {

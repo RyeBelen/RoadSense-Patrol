@@ -95,12 +95,14 @@ public sealed class GameModel
     private float crashSeconds;
     private float laneFrom = 1;
     private float laneMoveTime = 0.34f;
+    private float forwardAmount;
     private int routeChunk;
 
     public GamePhase Phase { get; private set; } = GamePhase.Attract;
     public int Seed { get; private set; }
     public int Lane { get; private set; } = 1;
     public float CarLane { get; private set; } = 1;
+    public float CarY { get; private set; } = PlayerY;
     public int Score { get; private set; }
     public int Streak { get; private set; }
     public int BestStreak { get; private set; }
@@ -152,7 +154,8 @@ public sealed class GameModel
         nextEvent = 0; spawnClock = 0; gameClock = 0; countdown = 3.1f;
         resultIdle = 0; boostSeconds = 0; flashSeconds = 0;
         Score = Streak = BestStreak = Shield = RepairCrew = Handled = Detected = Missed = NearMisses = TrafficPassed = TrafficCollisions = 0;
-        Lane = 1; CarLane = laneFrom = 1; laneMoveTime = 0.34f; ScanMeter = 1; SignalBoost = PatchSlowSeconds = 0;
+        Lane = 1; CarLane = laneFrom = 1; CarY = PlayerY; forwardAmount = 0;
+        laneMoveTime = 0.34f; ScanMeter = 1; SignalBoost = PatchSlowSeconds = 0;
         Lives = config.StartingLives; Speed = EffectiveSpeed = config.BaseSpeed;
         BrakeHeld = ScanHeld = AccelerateHeld = false;
         Warning = "SCANNER READY"; WarningType = null; TrafficWarning = false;
@@ -169,7 +172,7 @@ public sealed class GameModel
         BrakeHeld = held;
         if (!justPressed || Phase != GamePhase.Playing) return;
         var hazard = Objects.Where(o => o.Hazard is HazardType.MinorPothole or HazardType.Patch or HazardType.Hump &&
-                o.Warned && !o.Resolved && !o.ResponseAwarded && o.Lane == Lane && o.Y < PlayerY)
+                o.Warned && !o.Resolved && !o.ResponseAwarded && o.Lane == Lane && o.Y < CarY)
             .OrderByDescending(o => o.Y).FirstOrDefault();
         if (hazard is not null) AwardResponse(hazard);
     }
@@ -184,10 +187,10 @@ public sealed class GameModel
         laneFrom = CarLane;
         laneMoveTime = 0;
         foreach (var obj in Objects.Where(o => o.Hazard.HasValue && !o.Resolved && o.Lane == previousLane &&
-                     o.Y >= PlayerY - 160 && o.Y <= PlayerY - 35)) obj.CloseDodge = true;
+                     o.Y >= CarY - 160 && o.Y <= CarY - 35)) obj.CloseDodge = true;
         SoundRequested?.Invoke("lane");
         var hazard = Objects.Where(o => o.Hazard.HasValue && o.Warned && !o.Resolved &&
-                !o.ResponseAwarded && o.Lane == previousLane && o.Y < PlayerY)
+                !o.ResponseAwarded && o.Lane == previousLane && o.Y < CarY)
             .OrderByDescending(o => o.Y).FirstOrDefault();
         if (hazard is not null) AwardResponse(hazard);
     }
@@ -221,6 +224,9 @@ public sealed class GameModel
 
         gameClock += dt;
         spawnClock += dt;
+        forwardAmount = Math.Clamp(forwardAmount + (AccelerateHeld && !BrakeHeld ? 1.1f : -1.4f) * dt, 0, 1);
+        float forwardEased = forwardAmount * forwardAmount * (3 - 2 * forwardAmount);
+        CarY = PlayerY - 410 * forwardEased;
         SignalBoost = Math.Max(0, SignalBoost - dt);
         PatchSlowSeconds = Math.Max(0, PatchSlowSeconds - dt);
         bool scanning = ScanHeld && ScanMeter > 0;
@@ -228,7 +234,7 @@ public sealed class GameModel
         boostSeconds = scanning ? boostSeconds + dt : 0;
         Speed = Math.Min(config.MaxSpeed, config.BaseSpeed + gameClock * config.SpeedIncreasePerSecond);
         float speed = Speed;
-        if (AccelerateHeld && !BrakeHeld) speed *= 1.35f;
+        if (AccelerateHeld && !BrakeHeld) speed *= 1.75f;
         if (BrakeHeld) speed *= 0.63f;
         if (scanning) speed *= 0.82f;
         if (PatchSlowSeconds > 0) speed *= 0.68f;
@@ -259,6 +265,7 @@ public sealed class GameModel
                 continue;
             }
             float warningY = scanning || SignalBoost > 0 ? 20 : gameClock < 20 ? 145 : gameClock < 55 ? 190 : 230;
+            warningY = Math.Min(warningY, CarY - 210);
             if (obj.Hazard.HasValue && !obj.Warned && obj.Y >= warningY)
             {
                 obj.Warned = true; obj.WarningTime = gameClock; Detected++;
@@ -268,20 +275,20 @@ public sealed class GameModel
             {
                 float clearance = obj.Traffic == TrafficType.Truck ? 100 : 70;
                 if (Math.Abs(CarLane - (obj.VisualLane ?? obj.Lane)) < .43f &&
-                    obj.Y >= PlayerY - clearance && obj.Y <= PlayerY + clearance)
+                    obj.Y >= CarY - clearance && obj.Y <= CarY + clearance)
                 {
                     obj.Resolved = true;
                     ResolveTraffic(obj);
                     obj.Y = 800;
                     continue;
                 }
-                if (obj.Y > PlayerY + clearance)
+                if (obj.Y > CarY + clearance)
                 {
                     obj.Resolved = true;
                     TrafficPassed++;
                 }
             }
-            if (!obj.Resolved && !obj.Traffic.HasValue && obj.Y >= PlayerY)
+            if (!obj.Resolved && !obj.Traffic.HasValue && obj.Y >= CarY)
             {
                 obj.Resolved = true;
                 if (obj.Pickup.HasValue && Math.Abs(CarLane - obj.Lane) < .35f) Collect(obj.Pickup.Value);
@@ -289,7 +296,7 @@ public sealed class GameModel
             }
         }
         Objects.RemoveAll(o => o.Y > 750);
-        var active = Objects.Where(o => o.Hazard.HasValue && o.Warned && !o.Resolved && o.Y < PlayerY)
+        var active = Objects.Where(o => o.Hazard.HasValue && o.Warned && !o.Resolved && o.Y < CarY)
             .OrderByDescending(o => o.Hazard == HazardType.Pothole ? 3 : o.Hazard == HazardType.MinorPothole ? 2 : 1)
             .ThenByDescending(o => o.Y).FirstOrDefault();
         WarningType = active?.Hazard;
@@ -301,7 +308,7 @@ public sealed class GameModel
         if (active is null)
         {
             var trafficAhead = Objects.Where(o => o.Traffic.HasValue && !o.Resolved && o.Lane == Lane &&
-                    o.Y is >= 120 and < PlayerY).OrderByDescending(o => o.Y).FirstOrDefault();
+                    o.Y >= Math.Min(120, CarY - 120) && o.Y < CarY).OrderByDescending(o => o.Y).FirstOrDefault();
             if (trafficAhead is not null)
             {
                 TrafficWarning = true;

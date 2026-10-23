@@ -4,6 +4,8 @@
 
 Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
 
+Hold **W** to surge toward the top of the road at 75% above your current cruise speed. Release it to return to your cruise position and progression speed. The HUD shows both speeds in km/h. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
+
 ## Download
 
 Install the latest Windows x64 release from the [GitHub Releases page](https://github.com/clouddddd34/RoadSense-Patrol/releases). The installer adds a Start Menu shortcut and an optional desktop shortcut. It runs offline and includes the .NET runtime.
