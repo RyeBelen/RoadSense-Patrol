@@ -113,7 +113,7 @@ public sealed class GameForm : Form
             return;
         }
         if (e.KeyCode == Keys.F11) { ToggleFullscreen(); return; }
-        if (game.Phase == GamePhase.Crashing)
+        if (game.Phase is GamePhase.Crashing or GamePhase.CrashOutro)
         {
             if (e.KeyCode is Keys.Space or Keys.Enter) game.SkipCrash();
             return;
@@ -175,7 +175,7 @@ public sealed class GameForm : Form
     private void OnMouseDown(object? sender, MouseEventArgs e)
     {
         Focus();
-        if (game.Phase == GamePhase.Crashing) { game.SkipCrash(); return; }
+        if (game.Phase is GamePhase.Crashing or GamePhase.CrashOutro) { game.SkipCrash(); return; }
         var p = ToGame(e.Location);
         if (menuOpen)
         {
@@ -257,7 +257,21 @@ public sealed class GameForm : Form
         g.TranslateTransform((ClientSize.Width - 1200 * scale) / 2, (ClientSize.Height - 720 * scale) / 2);
         g.ScaleTransform(scale, scale);
         if (shake > 0) g.TranslateTransform((float)(Random.Shared.NextDouble() - 0.5) * 8, (float)(Random.Shared.NextDouble() - 0.5) * 8);
-        if (game.Phase == GamePhase.Results) DrawResults(g);
+        if (game.Phase == GamePhase.CrashOutro)
+        {
+            float progress = Math.Clamp(game.CrashOutroProgress, 0, 1);
+            if (progress < .5f)
+            {
+                DrawRoad(g);
+                DrawSidebars(g);
+                DrawCrash(g);
+            }
+            else DrawResults(g);
+            float fade = progress < .5f ? progress * 2 : (1 - progress) * 2;
+            fade = fade * fade * (3 - 2 * fade);
+            Fill(g, Color.FromArgb((int)(255 * fade), Navy), 0, 0, 1200, 720);
+        }
+        else if (game.Phase == GamePhase.Results) DrawResults(g);
         else
         {
             DrawRoad(g);
@@ -271,7 +285,7 @@ public sealed class GameForm : Form
             }
         }
         if (menuOpen) DrawMenu(g);
-        else if (game.Phase != GamePhase.Crashing) DrawMenuButton(g);
+        else if (game.Phase is not (GamePhase.Crashing or GamePhase.CrashOutro)) DrawMenuButton(g);
     }
 
     private void DrawRoad(Graphics g)
@@ -312,7 +326,7 @@ public sealed class GameForm : Form
             ? 600 + (float)Math.Sin(idleTime * 1.2) * 130 : LaneCenter(game.CarLane);
         float carY = game.Phase == GamePhase.Attract ? GameModel.PlayerY : game.CarY;
         DrawScanner(g, carX, carY);
-        if (game.Phase == GamePhase.Crashing)
+        if (game.Phase is GamePhase.Crashing or GamePhase.CrashOutro)
         {
             var state = g.Save();
             g.TranslateTransform(carX, carY + game.CrashProgress * 75);
@@ -886,8 +900,7 @@ public sealed class GameForm : Form
         DrawText(g, "PATROL COMPLETE", 29, White, 600, 34, true, true, FontStyle.Bold);
         DrawText(g, game.Score.ToString("N0"), 58, Cyan, 600, 108, true, true, FontStyle.Bold);
         DrawText(g, RankTitle(), 21, Teal, 600, 161, true, true, FontStyle.Bold);
-        int accuracy = game.Detected == 0 ? 100 : (int)Math.Round(game.Handled * 100.0 / game.Detected);
-        DrawText(g, $"ACCURACY {accuracy}%     BEST STREAK {game.BestStreak}     NEAR MISSES {game.NearMisses}",
+        DrawText(g, $"ACCURACY {game.AccuracyPercent}%     BEST STREAK {game.BestStreak}     NEAR MISSES {game.NearMisses}",
             16, White, 600, 208, true, true, FontStyle.Bold);
         DrawText(g, $"TRAFFIC PASSED {game.TrafficPassed}     COLLISIONS {game.TrafficCollisions}",
             13, Muted, 600, 233, true, true, FontStyle.Bold);

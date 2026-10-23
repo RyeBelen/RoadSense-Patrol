@@ -70,7 +70,7 @@ using (var inputForm = new GameForm())
         throw new Exception("Releasing Up Arrow must return the car and speed to cruise");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.5.0")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.5.1")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
@@ -136,6 +136,10 @@ Save("traffic-motorcycle.png");
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Crashing; i++) model.Update(1f / 60f);
 for (int i = 0; i < 55; i++) model.Update(1f / 60f);
 Save("crash.png");
+for (int i = 0; i < 600 && model.Phase != GamePhase.CrashOutro; i++) model.Update(1f / 60f);
+if (model.Phase != GamePhase.CrashOutro) throw new Exception("Crash scene did not reach fade transition");
+for (int i = 0; i < 36; i++) model.Update(1f / 60f);
+Save("crash-outro.png");
 for (int i = 0; i < 600 && model.Phase != GamePhase.Results; i++) model.Update(1f / 60f);
 if (model.Phase != GamePhase.Results) throw new Exception("Crash clip did not finish into results");
 typeof(GameModel).GetProperty("Score")!.SetValue(model, 5000);

@@ -97,6 +97,7 @@ boostCollision.Update(1f / 60f);
 Check(boostCollision.Lives == 98, "boost collisions follow the car at the top of the road");
 bool crashed = false;
 int crashFrames = 0;
+int crashOutroFrames = 0;
 int crashSoundRequests = 0;
 model.SoundRequested += name => { if (name == "crash") crashSoundRequests++; };
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
@@ -104,10 +105,13 @@ for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
     model.Update(1f / 60f);
     crashed |= model.Phase == GamePhase.Crashing;
     if (model.Phase == GamePhase.Crashing) crashFrames++;
+    if (model.Phase == GamePhase.CrashOutro) crashOutroFrames++;
 }
 Check(crashed && model.Phase == GamePhase.Results && model.Lives == 0 && model.Score >= 0 &&
-      model.Detected > 0 && model.NearMisses == 0 && crashFrames >= 570,
-    "three lost lives play the full crash scene before results");
+      model.Detected > 0 && model.NearMisses == 0 && crashFrames >= 570 && crashOutroFrames >= 45,
+    "three lost lives play the full crash scene and fade into results");
+Check(model.AccuracyPercent is >= 0 and <= 100,
+    "results accuracy remains valid when hidden hazards are handled");
 Check(crashSoundRequests == 1, "final lost life plays crash sound once");
 var skipModel = new GameModel(new GameConfig { BoothSeed = 19, StartingLives = 1 });
 skipModel.Start();

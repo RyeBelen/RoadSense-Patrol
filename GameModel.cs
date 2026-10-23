@@ -3,7 +3,7 @@ namespace RoadSensePatrol;
 public enum HazardType { MinorPothole, Pothole, Patch, Hump }
 public enum PickupType { RepairCrew, Shield, SignalBoost }
 public enum TrafficType { Car, Truck, Motorcycle }
-public enum GamePhase { Attract, Countdown, Playing, Crashing, Results }
+public enum GamePhase { Attract, Countdown, Playing, Crashing, CrashOutro, Results }
 
 public sealed class RoadObject
 {
@@ -99,6 +99,7 @@ public sealed class GameModel
     private float resultIdle;
     private float countdown;
     private float crashSeconds;
+    private float crashOutroSeconds;
     private float laneFrom = 1;
     private float laneMoveTime = 0.34f;
     private float boostFraction;
@@ -139,8 +140,13 @@ public sealed class GameModel
     public float DisplayKph => Math.Clamp(CruiseKph +
         (EffectiveSpeed / Math.Max(1, Speed) - 1) * (100f / 3f), 0, 125);
     public const float CrashDurationSeconds = 145f / 15f;
-    public float CrashProgress => Phase == GamePhase.Crashing ? 1 - crashSeconds / CrashDurationSeconds : 0;
-    public float CrashElapsed => Phase == GamePhase.Crashing ? CrashDurationSeconds - crashSeconds : 0;
+    public const float CrashOutroDurationSeconds = .8f;
+    public float CrashProgress => Phase == GamePhase.CrashOutro ? 1 :
+        Phase == GamePhase.Crashing ? 1 - crashSeconds / CrashDurationSeconds : 0;
+    public float CrashElapsed => Phase == GamePhase.CrashOutro ? CrashDurationSeconds :
+        Phase == GamePhase.Crashing ? CrashDurationSeconds - crashSeconds : 0;
+    public float CrashOutroProgress => Phase == GamePhase.CrashOutro ?
+        1 - crashOutroSeconds / CrashOutroDurationSeconds : 0;
     public float Elapsed => gameClock;
     public float FlashSeconds => flashSeconds;
     public float BonusFlashSeconds { get; private set; }
@@ -152,6 +158,8 @@ public sealed class GameModel
     public int Handled { get; private set; }
     public int Detected { get; private set; }
     public int Missed { get; private set; }
+    public int AccuracyPercent => Handled + Missed == 0 ? 100 :
+        (int)Math.Round(Handled * 100.0 / (Handled + Missed));
     public int NearMisses { get; private set; }
     public int TrafficPassed { get; private set; }
     public int TrafficCollisions { get; private set; }
@@ -191,7 +199,7 @@ public sealed class GameModel
 
     public void SkipCrash()
     {
-        if (Phase != GamePhase.Crashing) return;
+        if (Phase is not (GamePhase.Crashing or GamePhase.CrashOutro)) return;
         Phase = GamePhase.Results;
         resultIdle = 0;
     }
@@ -255,7 +263,17 @@ public sealed class GameModel
         if (Phase == GamePhase.Crashing)
         {
             crashSeconds -= dt;
-            if (crashSeconds <= 0) { Phase = GamePhase.Results; resultIdle = 0; }
+            if (crashSeconds <= 0)
+            {
+                Phase = GamePhase.CrashOutro;
+                crashOutroSeconds = CrashOutroDurationSeconds;
+            }
+            return;
+        }
+        if (Phase == GamePhase.CrashOutro)
+        {
+            crashOutroSeconds -= dt;
+            if (crashOutroSeconds <= 0) { Phase = GamePhase.Results; resultIdle = 0; }
             return;
         }
         if (Phase != GamePhase.Playing) return;
