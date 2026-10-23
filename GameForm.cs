@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.Runtime.InteropServices;
 
 namespace RoadSensePatrol;
 
@@ -26,6 +27,12 @@ public sealed class GameForm : Form
     private string typedInitials = "";
     private float shake;
 
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int virtualKey);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
     public GameForm()
     {
         game = new(config);
@@ -45,6 +52,7 @@ public sealed class GameForm : Form
         MouseUp += OnMouseUp;
         MouseMove += (_, e) => { pointer = ToGame(e.Location); Invalidate(); };
         MouseLeave += (_, _) => { pointer = new(-100, -100); Invalidate(); };
+        Deactivate += (_, _) => { game.AccelerateHeld = false; ReleasePointerButtons(); };
         timer.Tick += Tick;
         timer.Start();
         if (config.FullscreenOnStart) ToggleFullscreen();
@@ -52,6 +60,7 @@ public sealed class GameForm : Form
 
     private void Tick(object? sender, EventArgs e)
     {
+        SyncPhysicalBoostKey();
         double now = clock.Elapsed.TotalSeconds;
         accumulator += Math.Min(0.1, now - previousTime);
         previousTime = now;
@@ -71,6 +80,25 @@ public sealed class GameForm : Form
             accumulator -= 1.0 / 60;
         }
         Invalidate();
+    }
+
+    private void SyncPhysicalBoostKey()
+    {
+        if (!IsHandleCreated) return;
+        bool foreground = GetForegroundWindow() == Handle;
+        bool wDown = foreground && GetAsyncKeyState((int)Keys.W) < 0;
+        SyncBoostKey(foreground, wDown);
+    }
+
+    private void SyncBoostKey(bool foreground, bool wDown)
+    {
+        if (!foreground || menuOpen)
+        {
+            game.AccelerateHeld = false;
+            return;
+        }
+        if (game.Phase is GamePhase.Countdown or GamePhase.Playing)
+            game.AccelerateHeld = wDown;
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -137,6 +165,7 @@ public sealed class GameForm : Form
 
     private void OnMouseDown(object? sender, MouseEventArgs e)
     {
+        Focus();
         var p = ToGame(e.Location);
         if (menuOpen)
         {
@@ -166,6 +195,11 @@ public sealed class GameForm : Form
     }
 
     private void OnMouseUp(object? sender, MouseEventArgs e)
+    {
+        ReleasePointerButtons();
+    }
+
+    private void ReleasePointerButtons()
     {
         mouseBrake = mouseScan = false;
         game.SetBrake(false); game.ScanHeld = false;
@@ -582,7 +616,7 @@ public sealed class GameForm : Form
         }
         DrawSpeedometer(g);
         DrawText(g, "A / D  STEER", 13, White, 20, 604, style: FontStyle.Bold);
-        DrawText(g, "W  BOOST", 12, Amber, 20, 632, style: FontStyle.Bold);
+        DrawText(g, game.AccelerateHeld ? "W  ACCELERATING" : "HOLD W  BOOST", 12, Amber, 20, 632, style: FontStyle.Bold);
         DrawText(g, "S  BRAKE   •   B  SCAN", 12, Muted, 20, 660);
 
         Color warningColor = game.WarningType == HazardType.Pothole ? Red :
@@ -618,7 +652,7 @@ public sealed class GameForm : Form
         FillEllipse(g, Amber, 1019, 490, 9, 9); DrawText(g, "MINOR  /  BRAKE", 10, White, 1038, 485);
         FillEllipse(g, Green, 1019, 509, 9, 9); DrawText(g, "HUMP  /  BRAKE", 10, White, 1038, 504);
         FillEllipse(g, Cyan, 1019, 528, 9, 9); DrawText(g, "PATCH  /  BRAKE", 10, White, 1038, 523);
-        UiButton(g, "BRAKE", 1012, 550, 176, 70, White, mouseBrake);
+        UiButton(g, "BRAKE", 1012, 550, 176, 70, White, game.BrakeHeld);
         UiButton(g, "SCAN", 1012, 630, 176, 70, Cyan, mouseScan);
         DrawText(g, "TAP ROAD SIDES TO STEER", 12, White, 600, 686, true, true, FontStyle.Bold);
     }

@@ -39,9 +39,18 @@ using (var inputForm = new GameForm())
     for (int i = 0; i < 89; i++) inputModel.Update(1f / 60f);
     if (inputModel.IsBoosting || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
         throw new Exception("W boost must end and restore cruise speed");
+    var syncBoostKey = typeof(GameForm).GetMethod("SyncBoostKey", BindingFlags.Instance | BindingFlags.NonPublic)!;
+    syncBoostKey.Invoke(inputForm, [true, true]);
+    for (int i = 0; i < 90; i++) inputModel.Update(1f / 60f);
+    if (!inputModel.AccelerateHeld || Math.Abs(inputModel.CarY - GameModel.BoostFrontY) > .01f)
+        throw new Exception("Polling a physically held W must move the car to the top");
+    syncBoostKey.Invoke(inputForm, [false, true]);
+    for (int i = 0; i < 90; i++) inputModel.Update(1f / 60f);
+    if (inputModel.AccelerateHeld || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
+        throw new Exception("Losing game focus must release W and restore cruise speed");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.4.5")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.4.6")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
