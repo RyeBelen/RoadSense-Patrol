@@ -11,6 +11,12 @@ using (var crashWave = resources.GetManifestResourceStream(resources.GetManifest
 using (var crashPlayer = new SoundPlayer(crashWave)) crashPlayer.Load();
 if (!resources.GetManifestResourceNames().Any(n => n.EndsWith("roadsense-app.ico", StringComparison.OrdinalIgnoreCase)))
     throw new Exception("RoadSense window icon is missing");
+using (var scene = new CrashSceneFrames())
+{
+    if (Math.Abs(CrashSceneFrames.DurationSeconds - GameModel.CrashDurationSeconds) > .001f ||
+        scene.FrameAt(0).Width != 1020 || scene.FrameAt(9.6f).Height < 400)
+        throw new Exception("Embedded crash scene frames or timing are invalid");
+}
 var inputHandler = typeof(GameForm).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic,
     null, [typeof(object), typeof(KeyEventArgs)], null)!;
 var keyUpHandler = typeof(GameForm).GetMethod("OnKeyUp", BindingFlags.Instance | BindingFlags.NonPublic,
@@ -64,7 +70,7 @@ using (var inputForm = new GameForm())
         throw new Exception("Releasing Up Arrow must return the car and speed to cruise");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.4.9")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.5.0")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
@@ -130,7 +136,8 @@ Save("traffic-motorcycle.png");
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Crashing; i++) model.Update(1f / 60f);
 for (int i = 0; i < 55; i++) model.Update(1f / 60f);
 Save("crash.png");
-for (int i = 0; i < 150; i++) model.Update(1f / 60f);
+for (int i = 0; i < 600 && model.Phase != GamePhase.Results; i++) model.Update(1f / 60f);
+if (model.Phase != GamePhase.Results) throw new Exception("Crash clip did not finish into results");
 typeof(GameModel).GetProperty("Score")!.SetValue(model, 5000);
 Save("results.png");
 foreach (var letter in new[] { Keys.M, Keys.A, Keys.P })

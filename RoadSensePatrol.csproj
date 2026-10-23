@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>assets\roadsense-app.ico</ApplicationIcon>
-    <Version>0.4.9</Version>
+    <Version>0.5.0</Version>
     <Description>A Windows arcade driving game about spotting and safely handling simulated road hazards.</Description>
   </PropertyGroup>
 
@@ -18,6 +18,7 @@
     <EmbeddedResource Include="assets\major-pothole.png" />
     <EmbeddedResource Include="assets\roadsense-app.ico" />
     <EmbeddedResource Include="assets\crash.wav" />
+    <EmbeddedResource Include="assets\crash-scene-frames.zip" />
     <Compile Remove="tests\**\*.cs" />
   </ItemGroup>
 

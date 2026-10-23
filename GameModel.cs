@@ -138,7 +138,9 @@ public sealed class GameModel
         Math.Max(1, config.MaxSpeed - config.BaseSpeed), 0, 1);
     public float DisplayKph => Math.Clamp(CruiseKph +
         (EffectiveSpeed / Math.Max(1, Speed) - 1) * (100f / 3f), 0, 125);
-    public float CrashProgress => Phase == GamePhase.Crashing ? 1 - crashSeconds / 2.4f : 0;
+    public const float CrashDurationSeconds = 145f / 15f;
+    public float CrashProgress => Phase == GamePhase.Crashing ? 1 - crashSeconds / CrashDurationSeconds : 0;
+    public float CrashElapsed => Phase == GamePhase.Crashing ? CrashDurationSeconds - crashSeconds : 0;
     public float Elapsed => gameClock;
     public float FlashSeconds => flashSeconds;
     public float BonusFlashSeconds { get; private set; }
@@ -186,6 +188,13 @@ public sealed class GameModel
 
     public void Attract() { Phase = GamePhase.Attract; Objects.Clear(); resultIdle = 0; }
     public void TouchResults() => resultIdle = 0;
+
+    public void SkipCrash()
+    {
+        if (Phase != GamePhase.Crashing) return;
+        Phase = GamePhase.Results;
+        resultIdle = 0;
+    }
 
     public void PressBoost()
     {
@@ -369,7 +378,7 @@ public sealed class GameModel
         if (Lives <= 0)
         {
             Phase = GamePhase.Crashing;
-            crashSeconds = 2.4f;
+            crashSeconds = CrashDurationSeconds;
             ScanHeld = BrakeHeld = AccelerateHeld = false;
             IsScanning = false;
             SoundRequested?.Invoke("crash");

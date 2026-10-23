@@ -96,17 +96,27 @@ boostCollision.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Pothol
 boostCollision.Update(1f / 60f);
 Check(boostCollision.Lives == 98, "boost collisions follow the car at the top of the road");
 bool crashed = false;
+int crashFrames = 0;
 int crashSoundRequests = 0;
 model.SoundRequested += name => { if (name == "crash") crashSoundRequests++; };
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
 {
     model.Update(1f / 60f);
     crashed |= model.Phase == GamePhase.Crashing;
+    if (model.Phase == GamePhase.Crashing) crashFrames++;
 }
 Check(crashed && model.Phase == GamePhase.Results && model.Lives == 0 && model.Score >= 0 &&
-      model.Detected > 0 && model.NearMisses == 0,
-    "three lost lives trigger crash and results");
+      model.Detected > 0 && model.NearMisses == 0 && crashFrames >= 570,
+    "three lost lives play the full crash scene before results");
 Check(crashSoundRequests == 1, "final lost life plays crash sound once");
+var skipModel = new GameModel(new GameConfig { BoothSeed = 19, StartingLives = 1 });
+skipModel.Start();
+for (int i = 0; i < 190; i++) skipModel.Update(1f / 60f);
+skipModel.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Pothole, Y = skipModel.CarY - 1 });
+skipModel.Update(1f / 60f);
+Check(skipModel.Phase == GamePhase.Crashing, "last life opens crash replay");
+skipModel.SkipCrash();
+Check(skipModel.Phase == GamePhase.Results, "crash replay can be skipped to results");
 var mechanics = new GameModel(new GameConfig { BoothSeed = 99 });
 mechanics.Start();
 for (int i = 0; i < 190; i++) mechanics.Update(1f / 60f);

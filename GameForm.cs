@@ -17,6 +17,7 @@ public sealed class GameForm : Form
     private readonly Image? roadsidePoster = LoadRoadsidePoster();
     private readonly Image? brandLogo = LoadBrandLogo();
     private readonly Image? majorPotholeSprite = LoadMajorPotholeSprite();
+    private readonly CrashSceneFrames crashScene = new();
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 16 };
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private double previousTime, accumulator, idleTime, roadScroll;
@@ -112,6 +113,11 @@ public sealed class GameForm : Form
             return;
         }
         if (e.KeyCode == Keys.F11) { ToggleFullscreen(); return; }
+        if (game.Phase == GamePhase.Crashing)
+        {
+            if (e.KeyCode is Keys.Space or Keys.Enter) game.SkipCrash();
+            return;
+        }
         if (e.KeyCode == Keys.Escape) { menuOpen = !menuOpen; menuPage = MenuPage.Home; game.SetBrake(false); game.ScanHeld = game.AccelerateHeld = false; return; }
         if (menuOpen)
         {
@@ -169,6 +175,7 @@ public sealed class GameForm : Form
     private void OnMouseDown(object? sender, MouseEventArgs e)
     {
         Focus();
+        if (game.Phase == GamePhase.Crashing) { game.SkipCrash(); return; }
         var p = ToGame(e.Location);
         if (menuOpen)
         {
@@ -264,7 +271,7 @@ public sealed class GameForm : Form
             }
         }
         if (menuOpen) DrawMenu(g);
-        else DrawMenuButton(g);
+        else if (game.Phase != GamePhase.Crashing) DrawMenuButton(g);
     }
 
     private void DrawRoad(Graphics g)
@@ -863,10 +870,14 @@ public sealed class GameForm : Form
 
     private void DrawCrash(Graphics g)
     {
-        Fill(g, Color.FromArgb((int)(100 + game.CrashProgress * 85), Red), 200, 0, 800, 720);
-        DrawText(g, "CRASH!", 76, White, 600, 260, true, true, FontStyle.Bold);
-        DrawText(g, "THREE LIVES LOST", 25, White, 600, 337, true, true, FontStyle.Bold);
-        DrawText(g, "PATROL COMPLETE", 20, White, 600, 389, true, true);
+        Fill(g, Color.FromArgb(230, Navy), 0, 0, 1200, 720);
+        FillRound(g, Panel, 56, 78, 1088, 568, 18);
+        Fill(g, Red, 56, 78, 1088, 5);
+        DrawText(g, "CRASH REPLAY", 27, White, 89, 101, style: FontStyle.Bold);
+        DrawText(g, "FINAL LIFE LOST", 15, Red, 1110, 109, true, false, FontStyle.Bold);
+        g.DrawImage(crashScene.FrameAt(game.CrashElapsed), 90, 156, 1020, 420);
+        using (var border = new Pen(Border, 2)) g.DrawRectangle(border, 90, 156, 1020, 420);
+        DrawText(g, "TAP, SPACE OR ENTER TO SKIP", 14, Muted, 600, 611, true, true, FontStyle.Bold);
     }
 
     private void DrawResults(Graphics g)
@@ -982,7 +993,7 @@ public sealed class GameForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { timer.Dispose(); audio.Dispose(); roadsidePoster?.Dispose(); brandLogo?.Dispose(); majorPotholeSprite?.Dispose(); }
+        if (disposing) { timer.Dispose(); audio.Dispose(); crashScene.Dispose(); roadsidePoster?.Dispose(); brandLogo?.Dispose(); majorPotholeSprite?.Dispose(); }
         base.Dispose(disposing);
     }
 }

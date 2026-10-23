@@ -4,7 +4,7 @@
 
 Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
 
-The Windows executable and game window use the RoadSense logo. When the third life is lost, the game plays the supplied crash sound; the original source clip is `crash sound.mp3` and the embedded playback asset is `assets/crash.wav`.
+The Windows executable and game window use the RoadSense logo. When the third life is lost, the game shows the supplied crash scene in a popup while the crash sound plays. Tap, Space, or Enter skips to results. The video is bundled as `assets/crash-scene-frames.zip` for offline playback; the original sound source is `crash sound.mp3`, with `assets/crash.wav` embedded for playback.
 
 Hold **W** or **Up Arrow** to build speed gradually and move toward the top of the road. Releasing it gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or Left/Right to steer, **S** or Down to brake, and **B** to scan farther ahead and reveal hazards in side lanes. Normal radar reveals road distress only in your current lane; detected hazards remain visible after you change lanes.
 
