@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/bin
+**/obj
+.git
+.local
+assets
+concept
+installer
+tests
+*.cs
+*.csproj
+*.mp3
+publish*

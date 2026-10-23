@@ -1,5 +1,25 @@
 # RoadSense Patrol
 
+RoadSense Patrol now includes a fully 3D browser edition in [`web/`](web/README.md). Drive a coastal highway with a chase or hood camera, three lanes of traffic, road hazards, scanner boosts, pickups, and a local Top 10 board. Keyboard and touchscreen controls are supported.
+
+## Run the web game
+
+[Play RoadSense Patrol 3D](https://roadsense-patrol-3d-emooy9-37db86-149-56-107-207.sslip.io)
+
+Requires Node.js 22 or later.
+
+```powershell
+cd web
+npm ci
+npm run dev
+```
+
+Open the URL printed by Vite. Run `npm test` for the gameplay tests and `npm run build` for a production build. The web version uses Three.js and models its vehicles, hazards, and scenery directly as 3D meshes. It needs WebGL 2 and stores scores locally in each browser.
+
+Deployment uses the new **RoadSense Patrol 3D** Dokploy project. See [web deployment instructions](web/README.md#deployment) for its Docker build and health check.
+
+## Original Windows edition
+
 **Spot road hazards. React early. Keep your streak alive.** RoadSense Patrol is a Windows-only, top-down C# arcade driving game designed for short booth sessions. Dodge major potholes and traffic, brake for minor damage, road patches, and humps, use the scanner for earlier warnings, and compete on a local Top 10 board. You have three lives; traffic and speed increase as you survive. Motorcycles join later and swerve suddenly between lanes.
 
 Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
