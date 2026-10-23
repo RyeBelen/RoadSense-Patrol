@@ -16,6 +16,8 @@ public sealed class SoundBank : IDisposable
         for (int i = 1; i <= GameConfig.MultiplierCap; i++) Add("clean" + i, 580 + i * 65, 80);
         Add("results", 760, 250);
         AddEmbedded("crash", "crash.wav");
+        AddEmbedded("crash2", "crash-2.wav");
+        AddEmbedded("crash3", "crash-3.wav");
     }
 
     public void Play(string name)
