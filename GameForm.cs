@@ -15,7 +15,6 @@ public sealed class GameForm : Form
     private readonly SoundBank audio = new();
     private readonly Image? roadsidePoster = LoadRoadsidePoster();
     private readonly Image? brandLogo = LoadBrandLogo();
-    private readonly Image? trafficEnforcer = LoadTrafficEnforcer();
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 16 };
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private double previousTime, accumulator, idleTime, roadScroll;
@@ -281,8 +280,6 @@ public sealed class GameForm : Form
         }
         float posterY = (float)((roadScroll + 245) % 980) - 80;
         DrawPoster(g, 201, posterY);
-        float enforcerY = (float)((roadScroll + 450) % 900) - 150;
-        DrawTrafficEnforcer(g, 860, enforcerY);
     }
 
     private static float LaneCenter(float lane) => 426.67f + lane * 173.33f;
@@ -311,32 +308,9 @@ public sealed class GameForm : Form
         return new Bitmap(image);
     }
 
-    private static Image? LoadTrafficEnforcer()
-    {
-        var assembly = typeof(GameForm).Assembly;
-        string? name = assembly.GetManifestResourceNames().FirstOrDefault(n =>
-            n.EndsWith("traffic-enforcer.png", StringComparison.OrdinalIgnoreCase));
-        if (name is null) return null;
-        using var stream = assembly.GetManifestResourceStream(name);
-        if (stream is null) return null;
-        using var image = Image.FromStream(stream);
-        return new Bitmap(image);
-    }
-
-    private void DrawTrafficEnforcer(Graphics g, float x, float y)
-    {
-        if (trafficEnforcer is null) return;
-        FillEllipse(g, Color.FromArgb(65, 0, 0, 0), x + 30, y + 178, 85, 16);
-        var old = g.InterpolationMode;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        g.DrawImage(trafficEnforcer, x, y, 140, 200);
-        g.InterpolationMode = old;
-    }
-
     private void DrawBrand(Graphics g, float x, float y, bool large = false)
     {
         float icon = large ? 72 : 52;
-        FillRound(g, Color.FromArgb(28, 90, 103), x - 3, y + 5, icon + 6, icon + 6, 15);
         FillRound(g, Color.FromArgb(18, 35, 51), x, y, icon, icon, 13);
         if (brandLogo is not null)
         {
@@ -345,11 +319,6 @@ public sealed class GameForm : Form
             g.DrawImage(brandLogo, x + icon * .13f, y + icon * .13f, icon * .74f, icon * .74f);
             g.InterpolationMode = old;
         }
-        DrawText(g, "RoadSense", large ? 35 : 21, White, x + icon + (large ? 20 : 8), y - (large ? 1 : 2),
-            style: FontStyle.Bold, width: large ? 290 : 126);
-        DrawText(g, large ? "Smart monitoring for safer roads" : "Smart monitoring\nfor safer roads",
-            large ? 17 : 11, Muted, x + icon + (large ? 20 : 8), y + (large ? 40 : 25),
-            width: large ? 330 : 126);
     }
 
     private void DrawTree(Graphics g, float x, float y, float scale)
@@ -528,7 +497,7 @@ public sealed class GameForm : Form
         Fill(g, Navy, 1000, 0, 200, 720);
         Fill(g, Color.FromArgb(23, 42, 58), 196, 0, 4, 720);
         Fill(g, Color.FromArgb(23, 42, 58), 1000, 0, 4, 720);
-        DrawBrand(g, 19, 92);
+        DrawBrand(g, 74, 92);
         FillRound(g, Panel, 12, 159, 176, 100, 15);
         Fill(g, Teal, 12, 176, 4, 63);
         DrawText(g, "SCORE", 12, Muted, 25, 173, style: FontStyle.Bold);
@@ -683,7 +652,7 @@ public sealed class GameForm : Form
     {
         Fill(g, Navy, 0, 0, 200, 720);
         Fill(g, Navy, 1000, 0, 200, 720);
-        DrawBrand(g, 18, 94);
+        DrawBrand(g, 74, 94);
         DrawText(g, "HOW TO PLAY", 16, Teal, 18, 184, style: FontStyle.Bold);
         DrawText(g, "1  Spot the warning", 14, White, 18, 212);
         DrawText(g, "2  Dodge or brake", 14, White, 18, 257);
@@ -845,7 +814,7 @@ public sealed class GameForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { timer.Dispose(); audio.Dispose(); roadsidePoster?.Dispose(); brandLogo?.Dispose(); trafficEnforcer?.Dispose(); }
+        if (disposing) { timer.Dispose(); audio.Dispose(); roadsidePoster?.Dispose(); brandLogo?.Dispose(); }
         base.Dispose(disposing);
     }
 }

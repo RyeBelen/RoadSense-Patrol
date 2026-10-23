@@ -7,13 +7,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon></ApplicationIcon>
+    <Version>0.1.0</Version>
+    <Description>A Windows arcade driving game about spotting and safely handling simulated road hazards.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <None Update="settings.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="concept\roadsense-tax-poster-prototype.png" />
     <EmbeddedResource Include="assets\roadsense-logo.png" />
-    <EmbeddedResource Include="assets\traffic-enforcer.png" />
     <Compile Remove="tests\**\*.cs" />
   </ItemGroup>
 

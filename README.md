@@ -1,6 +1,12 @@
 # RoadSense Patrol
 
-A Windows-only, top-down C# arcade game for the RoadSense booth. **Road hazards and scanner detections are simulated for demonstration.** This game does not run the RoadSense AI model or connect to the iOS app. Patrol continues until three damaging hits use up your lives; road speed rises as you survive. Cars appear first; trucks and denser traffic arrive later. Traffic avoids nearby major potholes. Traffic collisions cost a life.
+**Spot road hazards. React early. Keep your streak alive.** RoadSense Patrol is a Windows-only, top-down C# arcade driving game designed for short booth sessions. Dodge major potholes and traffic, brake for minor damage and humps, use the scanner for earlier warnings, and compete on a local Top 10 board. You have three lives; traffic and speed increase as you survive.
+
+Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
+
+## Download
+
+Install the latest Windows x64 release from the [GitHub Releases page](https://github.com/clouddddd34/RoadSense-Patrol/releases). The installer adds a Start Menu shortcut and an optional desktop shortcut. It runs offline and includes the .NET runtime.
 
 ## Run
 
@@ -24,6 +30,18 @@ dotnet publish RoadSensePatrol.csproj -c Release -r win-x64 --self-contained tru
 ```
 
 Copy the **entire `publish` folder** to the booth PC. Run `RoadSensePatrol.exe`. The build is offline; no account or network is needed.
+
+Build the Windows installer with Inno Setup 6 after publishing:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\RoadSensePatrol.iss
+```
+
+The installer is written to `dist/RoadSensePatrol-Setup-x64.exe`.
+
+## License
+
+RoadSense Patrol is released under the [MIT License](LICENSE).
 
 ## Controls
 
