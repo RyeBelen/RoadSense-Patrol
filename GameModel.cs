@@ -83,6 +83,7 @@ public static class RouteGenerator
 public sealed class GameModel
 {
     public const float PlayerY = 548;
+    public const float BoostFrontY = 65;
     private readonly GameConfig config;
     private readonly List<RouteEvent> route;
     private int nextEvent;
@@ -231,7 +232,7 @@ public sealed class GameModel
         spawnClock += dt;
         forwardAmount = Math.Clamp(forwardAmount + (AccelerateHeld && !BrakeHeld ? 1.1f : -1.4f) * dt, 0, 1);
         float forwardEased = forwardAmount * forwardAmount * (3 - 2 * forwardAmount);
-        CarY = PlayerY - 410 * forwardEased;
+        CarY = PlayerY + (BoostFrontY - PlayerY) * forwardEased;
         SignalBoost = Math.Max(0, SignalBoost - dt);
         PatchSlowSeconds = Math.Max(0, PatchSlowSeconds - dt);
         bool scanning = ScanHeld && ScanMeter > 0;

@@ -43,8 +43,9 @@ speedModel.Update(1f / 60f);
 Check(speedModel.EffectiveSpeed > speedModel.Speed * 1.34f && speedModel.Speed > cruiseSpeed,
     "W boost raises effective speed without resetting progression");
 for (int i = 0; i < 65; i++) speedModel.Update(1f / 60f);
-Check(speedModel.CarY < 150 && speedModel.EffectiveSpeed > speedModel.Speed * 1.74f,
-    "holding W drives the car near the top of the road at higher speed");
+Check(Math.Abs(speedModel.CarY - GameModel.BoostFrontY) < .01f &&
+      speedModel.EffectiveSpeed > speedModel.Speed * 1.74f,
+    "holding W drives the whole car to the top edge at higher speed");
 Check(speedModel.DisplayKph > speedModel.CruiseKph && speedModel.DisplayKph <= 125,
     "W shows a temporary higher km/h reading");
 speedModel.AccelerateHeld = false;
