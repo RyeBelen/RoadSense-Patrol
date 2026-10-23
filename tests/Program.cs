@@ -57,6 +57,17 @@ Check(Math.Abs(speedModel.DisplayKph - speedModel.CruiseKph) < .01f,
 for (int i = 0; i < 50; i++) speedModel.Update(1f / 60f);
 Check(Math.Abs(speedModel.CarY - GameModel.PlayerY) < .01f,
     "releasing W brings the car back to its cruise position");
+var tapModel = new GameModel(new GameConfig { BoothSeed = 4242, StartingLives = 999 });
+tapModel.Start();
+for (int i = 0; i < 190; i++) tapModel.Update(1f / 60f);
+tapModel.PressBoost();
+tapModel.AccelerateHeld = false;
+for (int i = 0; i < 30; i++) tapModel.Update(1f / 60f);
+Check(Math.Abs(tapModel.CarY - GameModel.BoostFrontY) < .01f && tapModel.IsBoosting,
+    "a quick W tap reaches the top without holding the key");
+for (int i = 0; i < 100; i++) tapModel.Update(1f / 60f);
+Check(Math.Abs(tapModel.CarY - GameModel.PlayerY) < .01f && !tapModel.IsBoosting,
+    "a quick W tap returns to the current cruise position");
 var steeringModel = new GameModel(new GameConfig { BoothSeed = 88 });
 steeringModel.Start();
 for (int i = 0; i < 190; i++) steeringModel.Update(1f / 60f);

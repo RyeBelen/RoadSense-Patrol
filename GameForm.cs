@@ -96,13 +96,13 @@ public sealed class GameForm : Form
             if (!e.Control && !e.Alt && e.KeyCode != Keys.ShiftKey)
             {
                 StartGame();
-                if (e.KeyCode == Keys.W) game.AccelerateHeld = true;
+                if (e.KeyCode == Keys.W) game.PressBoost();
             }
             return;
         }
         if (game.Phase == GamePhase.Countdown)
         {
-            if (e.KeyCode == Keys.W) game.AccelerateHeld = true;
+            if (e.KeyCode == Keys.W) game.PressBoost();
             return;
         }
         if (game.Phase == GamePhase.Results)
@@ -125,7 +125,7 @@ public sealed class GameForm : Form
         if (e.KeyCode is Keys.D or Keys.Right) game.ChangeLane(1);
         if (e.KeyCode is Keys.S or Keys.Down) game.SetBrake(true);
         if (e.KeyCode == Keys.B) game.ScanHeld = true;
-        if (e.KeyCode == Keys.W) game.AccelerateHeld = true;
+        if (e.KeyCode == Keys.W) game.PressBoost();
     }
 
     private void OnKeyUp(object? sender, KeyEventArgs e)
@@ -629,9 +629,9 @@ public sealed class GameForm : Form
     private void DrawSpeedometer(Graphics g)
     {
         FillRound(g, Panel, 12, 472, 176, 117, 15);
-        Color accent = game.AccelerateHeld && !game.BrakeHeld ? Amber : Cyan;
+        Color accent = game.IsBoosting ? Amber : Cyan;
         DrawText(g, "SPEEDOMETER", 12, Muted, 25, 483, style: FontStyle.Bold);
-        DrawText(g, game.AccelerateHeld && !game.BrakeHeld ? "BOOST" : "CRUISE", 11, accent,
+        DrawText(g, game.IsBoosting ? "BOOST" : "CRUISE", 11, accent,
             151, 484, true, false, FontStyle.Bold, 68);
         float fraction = Math.Clamp((game.DisplayKph - 60) / 70, 0, 1);
         using (var track = new Pen(Border, 7)) g.DrawArc(track, 42, 507, 116, 98, 155, 230);

@@ -28,8 +28,14 @@ using (var inputForm = new GameForm())
         throw new Exception("W key must boost speed once gameplay begins");
     keyUpHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.W)]);
     inputModel.Update(1f / 60f);
-    if (inputModel.AccelerateHeld || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
-        throw new Exception("Releasing W must restore cruise speed");
+    if (inputModel.AccelerateHeld || !inputModel.IsBoosting)
+        throw new Exception("Releasing W must leave a visible boost pulse");
+    for (int i = 0; i < 30; i++) inputModel.Update(1f / 60f);
+    if (Math.Abs(inputModel.CarY - GameModel.BoostFrontY) > .01f)
+        throw new Exception("A W tap must move the car to the top edge");
+    for (int i = 0; i < 100; i++) inputModel.Update(1f / 60f);
+    if (inputModel.IsBoosting || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
+        throw new Exception("W boost must end and restore cruise speed");
 }
 using var form = new GameForm();
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
