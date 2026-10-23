@@ -2,7 +2,7 @@ namespace RoadSensePatrol;
 
 public enum HazardType { MinorPothole, Pothole, Patch, Hump }
 public enum PickupType { RepairCrew, Shield, SignalBoost }
-public enum TrafficType { Car, Truck }
+public enum TrafficType { Car, Truck, Motorcycle }
 public enum GamePhase { Attract, Countdown, Playing, Crashing, Results }
 
 public sealed class RoadObject
@@ -19,6 +19,8 @@ public sealed class RoadObject
     public float WarningTime { get; set; }
     public bool ResponseAwarded { get; set; }
     public bool CloseDodge { get; set; }
+    public float SwerveCooldown { get; set; } = 0.9f;
+    public int SwerveCount { get; set; }
 }
 
 public readonly record struct RouteEvent(float Time, int Lane, HazardType? Hazard, PickupType? Pickup,
@@ -69,7 +71,9 @@ public static class RouteGenerator
                 t += .5f;
                 continue;
             }
-            var traffic = progress < 38 || random.NextDouble() >= .38 ? TrafficType.Car : TrafficType.Truck;
+            double trafficRoll = random.NextDouble();
+            var traffic = progress >= 38 && trafficRoll < .29 ? TrafficType.Truck
+                : progress >= 28 && trafficRoll < .63 ? TrafficType.Motorcycle : TrafficType.Car;
             var nearbyHazards = result.Where(e => e.Hazard.HasValue && e.Time > progress + .3f &&
                 e.Time < progress + (traffic == TrafficType.Truck ? 2.6f : 2f)).ToList();
             int lane = nearbyHazards.Count > 0 ? nearbyHazards[random.Next(nearbyHazards.Count)].Lane : random.Next(3);
@@ -116,6 +120,9 @@ public sealed class GameModel
     public bool ScanHeld { get; set; }
     public bool AccelerateHeld { get; set; }
     public bool IsBoosting => Phase == GamePhase.Playing && boostFraction > 0;
+    public bool RadarWide => (ScanHeld && ScanMeter > 0) || SignalBoost > 0;
+    public float RadarStartY => Math.Min(RadarWide ? 20 : gameClock < 20 ? 145 : gameClock < 55 ? 190 : 230,
+        CarY - 210);
     public float BoostFraction => boostFraction;
     public bool BrakeHeld { get; private set; }
     public int Lives { get; private set; }
@@ -266,12 +273,18 @@ public sealed class GameModel
         {
             var e = route[nextEvent++];
             Objects.Add(new RoadObject { Lane = e.Lane, Hazard = e.Hazard, Pickup = e.Pickup,
-                Traffic = e.Traffic, ColorIndex = e.ColorIndex, Y = e.Traffic == TrafficType.Truck ? -130 : -90 });
+                Traffic = e.Traffic, ColorIndex = e.ColorIndex, Y = e.Traffic == TrafficType.Truck ? -130 : -90,
+                SwerveCooldown = .55f + e.ColorIndex * .14f });
         }
         foreach (var obj in Objects)
         {
-            obj.Y += speed * (obj.Traffic == TrafficType.Truck ? .68f : obj.Traffic == TrafficType.Car ? .8f : 1f) * dt;
-            if (obj.Traffic.HasValue && !obj.Resolved) SteerTrafficAroundMajorPothole(obj, dt);
+            obj.Y += speed * (obj.Traffic == TrafficType.Truck ? .68f : obj.Traffic == TrafficType.Car ? .8f
+                : obj.Traffic == TrafficType.Motorcycle ? 1.08f : 1f) * dt;
+            if (obj.Traffic.HasValue && !obj.Resolved)
+            {
+                SteerTrafficAroundMajorPothole(obj, dt);
+                if (obj.Traffic == TrafficType.Motorcycle) SwerveMotorcycle(obj, dt);
+            }
             if (obj.Hazard.HasValue && !obj.Resolved && RepairCrew > 0 && obj.Y >= 60)
             {
                 RepairCrew--; obj.Resolved = true; obj.Y = 800;
@@ -281,17 +294,17 @@ public sealed class GameModel
                 Pop("REPAIR CREW CLEAR!"); SoundRequested?.Invoke("pickup");
                 continue;
             }
-            float warningY = scanning || SignalBoost > 0 ? 20 : gameClock < 20 ? 145 : gameClock < 55 ? 190 : 230;
-            warningY = Math.Min(warningY, CarY - 210);
-            if (obj.Hazard.HasValue && !obj.Warned && obj.Y >= warningY)
+            if (obj.Hazard.HasValue && !obj.Warned && obj.Y >= RadarStartY && obj.Y < CarY &&
+                (obj.Lane == Lane || RadarWide))
             {
                 obj.Warned = true; obj.WarningTime = gameClock; Detected++;
                 SoundRequested?.Invoke(obj.Hazard == HazardType.Pothole ? "major" : obj.Hazard == HazardType.MinorPothole ? "minor" : obj.Hazard == HazardType.Patch ? "patch" : "hump");
             }
             if (obj.Traffic.HasValue && !obj.Resolved)
             {
-                float clearance = obj.Traffic == TrafficType.Truck ? 100 : 70;
-                if (Math.Abs(CarLane - (obj.VisualLane ?? obj.Lane)) < .43f &&
+                float clearance = obj.Traffic == TrafficType.Truck ? 100 : obj.Traffic == TrafficType.Motorcycle ? 53 : 70;
+                float laneClearance = obj.Traffic == TrafficType.Motorcycle ? .29f : .43f;
+                if (Math.Abs(CarLane - (obj.VisualLane ?? obj.Lane)) < laneClearance &&
                     obj.Y >= CarY - clearance && obj.Y <= CarY + clearance)
                 {
                     obj.Resolved = true;
@@ -329,7 +342,8 @@ public sealed class GameModel
             if (trafficAhead is not null)
             {
                 TrafficWarning = true;
-                Warning = trafficAhead.Traffic == TrafficType.Truck ? "TRUCK AHEAD" : "CAR AHEAD";
+                Warning = trafficAhead.Traffic == TrafficType.Truck ? "TRUCK AHEAD"
+                    : trafficAhead.Traffic == TrafficType.Motorcycle ? "MOTORCYCLE AHEAD" : "CAR AHEAD";
             }
         }
         if (Lives <= 0)
@@ -360,7 +374,23 @@ public sealed class GameModel
                 break;
             }
         }
-        car.VisualLane += (car.Lane - car.VisualLane.Value) * Math.Min(1, dt * 4.5f);
+        car.VisualLane += (car.Lane - car.VisualLane.Value) * Math.Min(1, dt *
+            (car.Traffic == TrafficType.Motorcycle ? 15f : 4.5f));
+    }
+
+    private void SwerveMotorcycle(RoadObject bike, float dt)
+    {
+        if (bike.Y < 65 || bike.Y >= CarY - 55) return;
+        bike.SwerveCooldown -= dt;
+        if (bike.SwerveCooldown > 0 || Math.Abs((bike.VisualLane ?? bike.Lane) - bike.Lane) > .08f) return;
+        int direction = (bike.ColorIndex + bike.SwerveCount) % 2 == 0 ? 1 : -1;
+        int target = bike.Lane + direction;
+        if (target is < 0 or > 2) target = bike.Lane - direction;
+        if (!Objects.Any(o => o != bike && !o.Resolved && o.Traffic.HasValue &&
+            (o.VisualLane ?? o.Lane) >= target - .5f && (o.VisualLane ?? o.Lane) <= target + .5f &&
+            Math.Abs(o.Y - bike.Y) < 105)) bike.Lane = target;
+        bike.SwerveCount++;
+        bike.SwerveCooldown = .8f + (bike.ColorIndex % 3) * .17f;
     }
 
     private void AwardResponse(RoadObject hazard)
@@ -438,7 +468,8 @@ public sealed class GameModel
         Score = Math.Max(0, Score - 150);
         Streak = 0;
         flashSeconds = .4f;
-        Pop(obj.Traffic == TrafficType.Truck ? "TRUCK COLLISION!" : "CAR COLLISION!");
+        Pop(obj.Traffic == TrafficType.Truck ? "TRUCK COLLISION!" :
+            obj.Traffic == TrafficType.Motorcycle ? "MOTORCYCLE COLLISION!" : "CAR COLLISION!");
         SoundRequested?.Invoke("hit");
     }
 

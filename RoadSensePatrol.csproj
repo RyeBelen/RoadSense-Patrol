@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>assets\roadsense-app.ico</ApplicationIcon>
-    <Version>0.4.6</Version>
+    <Version>0.4.7</Version>
     <Description>A Windows arcade driving game about spotting and safely handling simulated road hazards.</Description>
   </PropertyGroup>
 

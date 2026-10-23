@@ -50,7 +50,7 @@ using (var inputForm = new GameForm())
         throw new Exception("Losing game focus must release W and restore cruise speed");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.4.6")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.4.7")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
@@ -106,6 +106,8 @@ for (int i = 0; i < 4 * 60; i++) model.Update(1f / 60f);
 Save("traffic.png");
 model.Objects.Add(new RoadObject { Lane = 2, Traffic = TrafficType.Truck, ColorIndex = 3, Y = 260 });
 Save("traffic-truck.png");
+model.Objects.Add(new RoadObject { Lane = 0, Traffic = TrafficType.Motorcycle, ColorIndex = 1, Y = 310 });
+Save("traffic-motorcycle.png");
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Crashing; i++) model.Update(1f / 60f);
 for (int i = 0; i < 55; i++) model.Update(1f / 60f);
 Save("crash.png");

@@ -1,12 +1,12 @@
 # RoadSense Patrol
 
-**Spot road hazards. React early. Keep your streak alive.** RoadSense Patrol is a Windows-only, top-down C# arcade driving game designed for short booth sessions. Dodge major potholes and traffic, brake for minor damage, road patches, and humps, use the scanner for earlier warnings, and compete on a local Top 10 board. You have three lives; traffic and speed increase as you survive.
+**Spot road hazards. React early. Keep your streak alive.** RoadSense Patrol is a Windows-only, top-down C# arcade driving game designed for short booth sessions. Dodge major potholes and traffic, brake for minor damage, road patches, and humps, use the scanner for earlier warnings, and compete on a local Top 10 board. You have three lives; traffic and speed increase as you survive. Motorcycles join later and swerve suddenly between lanes.
 
 Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
 
 The Windows executable and game window use the RoadSense logo. When the third life is lost, the game plays the supplied crash sound; the original source clip is `crash sound.mp3` and the embedded playback asset is `assets/crash.wav`.
 
-Hold **W** to build speed gradually and move toward the top of the road. Releasing W gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
+Hold **W** to build speed gradually and move toward the top of the road. Releasing W gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead and reveal hazards in side lanes. Normal radar reveals road distress only in your current lane; detected hazards remain visible after you change lanes.
 
 ## Download
 

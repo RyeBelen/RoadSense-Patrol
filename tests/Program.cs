@@ -23,6 +23,9 @@ Check(a.Any(e => e.Traffic == TrafficType.Car && e.Time < 38) &&
       a.Where(e => e.Traffic.HasValue).All(e => e.ColorIndex is >= 0 and < 6),
     "cars arrive first, trucks and color variants appear later");
 var longRoute = RouteGenerator.Generate(4242, 140);
+Check(longRoute.Any(e => e.Traffic == TrafficType.Motorcycle && e.Time >= 28) &&
+      longRoute.All(e => e.Traffic != TrafficType.Motorcycle || e.Time >= 28),
+    "motorcycles join traffic later in the run");
 Check(longRoute.Count(e => e.Traffic.HasValue && e.Time >= 85) >
       longRoute.Count(e => e.Traffic.HasValue && e.Time < 35),
     "traffic density increases during progression");
@@ -179,6 +182,32 @@ driverModel.Objects.Add(minorCar);
 driverModel.Objects.Add(new RoadObject { Lane = 2, Hazard = HazardType.MinorPothole, Y = 210 });
 driverModel.Update(1f / 60f);
 Check(minorCar.Lane == 2, "traffic does not swerve for a minor pothole");
+var radarModel = new GameModel(new GameConfig { BoothSeed = 17, StartingLives = 99 });
+radarModel.Start();
+for (int i = 0; i < 190; i++) radarModel.Update(1f / 60f);
+var sideHazard = new RoadObject { Lane = 0, Hazard = HazardType.Pothole, Y = 300 };
+var forwardHazard = new RoadObject { Lane = 1, Hazard = HazardType.MinorPothole, Y = 300 };
+radarModel.Objects.Add(sideHazard);
+radarModel.Objects.Add(forwardHazard);
+radarModel.Update(1f / 60f);
+Check(forwardHazard.Warned && !sideHazard.Warned,
+    "normal radar reveals only road distress in the player's lane");
+radarModel.ScanHeld = true;
+radarModel.Update(1f / 60f);
+Check(sideHazard.Warned && radarModel.RadarWide,
+    "scan boost reveals road distress in side lanes");
+var bikeModel = new GameModel(new GameConfig { BoothSeed = 17, StartingLives = 99 });
+bikeModel.Start();
+for (int i = 0; i < 190; i++) bikeModel.Update(1f / 60f);
+var motorcycle = new RoadObject { Lane = 1, Traffic = TrafficType.Motorcycle, Y = 220,
+    SwerveCooldown = 0, ColorIndex = 0 };
+bikeModel.Objects.Add(motorcycle);
+bikeModel.Update(1f / 60f);
+Check(motorcycle.Lane == 2 && motorcycle.SwerveCount == 1,
+    "motorcycle suddenly chooses an adjacent lane");
+for (int i = 0; i < 12; i++) bikeModel.Update(1f / 60f);
+Check(motorcycle.VisualLane > 1.8f,
+    "motorcycle visibly swerves into its new lane");
 var boardDir = Path.Combine(Path.GetTempPath(), "RoadSensePatrolTests", Guid.NewGuid().ToString("N"));
 var board = new LeaderboardStore(boardDir);
 board.Add("bob", 3000);

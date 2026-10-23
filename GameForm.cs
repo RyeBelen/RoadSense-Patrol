@@ -282,7 +282,7 @@ public sealed class GameForm : Form
         DrawScenery(g);
         if (game.Phase == GamePhase.Attract)
         {
-            for (int i = 0; i < 3; i++) DrawHazard(g, LaneCenter(i), (float)((idleTime * 95 + i * 250) % 800) - 80, i == 1 ? HazardType.Pothole : HazardType.MinorPothole);
+            DrawHazard(g, LaneCenter(1), (float)((idleTime * 95 + 250) % 800) - 80, HazardType.Pothole);
             DrawTraffic(g, 780, (float)((idleTime * 85 + 90) % 900) - 120, TrafficType.Car, 1);
             DrawTraffic(g, 420, (float)((idleTime * 65 + 460) % 900) - 150, TrafficType.Truck, 3);
         }
@@ -291,7 +291,8 @@ public sealed class GameForm : Form
             foreach (var obj in game.Objects.Where(o => !o.Traffic.HasValue))
             {
                 float x = LaneCenter(obj.Lane);
-                if (obj.Hazard.HasValue) DrawHazard(g, x, obj.Y, obj.Hazard.Value);
+                if (obj.Hazard.HasValue && obj.Warned && !obj.Resolved)
+                    DrawHazard(g, x, obj.Y, obj.Hazard.Value);
                 if (obj.Pickup.HasValue) DrawPickup(g, x, obj.Y, obj.Pickup.Value);
             }
             foreach (var obj in game.Objects.Where(o => o.Traffic.HasValue))
@@ -421,6 +422,23 @@ public sealed class GameForm : Form
 
     private void DrawScanner(Graphics g, float x, float y)
     {
+        if (game.Phase == GamePhase.Playing)
+        {
+            float top = Math.Max(0, game.RadarStartY);
+            float laneX = LaneCenter(game.Lane);
+            bool wide = game.RadarWide;
+            PointF[] beam = wide
+                ? [new(342, top), new(858, top), new(x + 69, y - 29), new(x - 69, y - 29)]
+                : [new(laneX - 79, top), new(laneX + 79, top),
+                    new(x + 52, y - 29), new(x - 52, y - 29)];
+            using var beamBrush = new SolidBrush(Color.FromArgb(wide ? 49 : 34, Teal));
+            using var edgePen = new Pen(Color.FromArgb(wide ? 140 : 87, Cyan), wide ? 2.5f : 1.5f);
+            g.FillPolygon(beamBrush, beam);
+            g.DrawLine(edgePen, beam[0], beam[3]);
+            g.DrawLine(edgePen, beam[1], beam[2]);
+            g.DrawLine(edgePen, beam[0], beam[1]);
+            return;
+        }
         using var brush = new SolidBrush(Color.FromArgb(42, Teal));
         g.FillPie(brush, x - 165, y - 310, 330, 330, 205, 130);
         using var pen = new Pen(Color.FromArgb(95, Cyan), 2);
@@ -449,7 +467,21 @@ public sealed class GameForm : Form
             Color.FromArgb(165, 100, 203), Color.FromArgb(230, 103, 85),
             Color.FromArgb(198, 205, 212), Color.FromArgb(80, 165, 113)];
         Color body = colors[Math.Abs(colorIndex) % colors.Length];
-        if (kind == TrafficType.Truck)
+        if (kind == TrafficType.Motorcycle)
+        {
+            FillEllipse(g, Color.FromArgb(65, 0, 0, 0), x - 23, y - 45, 52, 103);
+            FillEllipse(g, Color.FromArgb(20, 25, 31), x - 11, y - 48, 22, 27);
+            FillEllipse(g, Color.FromArgb(20, 25, 31), x - 11, y + 28, 22, 27);
+            FillRound(g, body, x - 15, y - 35, 30, 74, 10);
+            FillEllipse(g, Color.FromArgb(28, 42, 56), x - 15, y - 24, 30, 36);
+            FillEllipse(g, Color.FromArgb(225, 231, 233), x - 10, y - 22, 20, 18);
+            Fill(g, Color.FromArgb(22, 30, 37), x - 29, y - 15, 58, 5);
+            FillEllipse(g, Color.FromArgb(229, 191, 144), x - 24, y - 13, 9, 9);
+            FillEllipse(g, Color.FromArgb(229, 191, 144), x + 15, y - 13, 9, 9);
+            Fill(g, White, x - 5, y - 39, 10, 4);
+            Fill(g, Red, x - 7, y + 38, 14, 5);
+        }
+        else if (kind == TrafficType.Truck)
         {
             FillRound(g, Color.FromArgb(75, 0, 0, 0), x - 44, y - 70, 94, 165, 11);
             FillRound(g, Color.FromArgb(93, 106, 115), x - 40, y - 77, 80, 169, 9);
@@ -643,7 +675,7 @@ public sealed class GameForm : Form
         DrawText(g, "SCAN ENERGY", 12, Muted, 1024, 285, style: FontStyle.Bold);
         FillRound(g, Border, 1024, 313, 152, 13, 6);
         FillRound(g, Cyan, 1024, 313, 152 * game.ScanMeter, 13, 6);
-        DrawText(g, "HOLD B TO SEE FARTHER", 11, White, 1024, 339);
+        DrawText(g, "B: FAR + SIDE LANES", 11, White, 1024, 339);
         DrawText(g, game.Shield > 0 ? $"SHIELD  {game.Shield}" : "SHIELD  —", 12, Green, 1024, 369, style: FontStyle.Bold);
         DrawText(g, game.RepairCrew > 0 ? $"REPAIR  {game.RepairCrew}" : "REPAIR  —", 12, Green, 1024, 392, style: FontStyle.Bold);
         if (game.SignalBoost > 0) DrawText(g, $"SIGNAL  {game.SignalBoost:0}s", 11, Cyan, 1024, 414);
