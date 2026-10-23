@@ -1,0 +1,13 @@
+bin/
+obj/
+publish/
+publish-redesign/
+tests/**/bin/
+tests/**/obj/
+.vs/
+*.user
+*.suo
+
+# Keep the game poster; local mockups and screenshots are review artifacts.
+concept/*.png
+!concept/roadsense-tax-poster-prototype.png

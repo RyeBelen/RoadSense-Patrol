@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\GameConfig.cs" Link="GameConfig.cs" />
+    <Compile Include="..\GameModel.cs" Link="GameModel.cs" />
+    <Compile Include="..\LeaderboardStore.cs" Link="LeaderboardStore.cs" />
+  </ItemGroup>
+</Project>

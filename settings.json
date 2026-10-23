@@ -1,0 +1,10 @@
+{
+  "boothSeed": null,
+  "prizeScore": 5000,
+  "showPrizeTarget": false,
+  "fullscreenOnStart": false,
+  "startingLives": 3,
+  "baseSpeed": 205,
+  "speedIncreasePerSecond": 2.1,
+  "maxSpeed": 520
+}

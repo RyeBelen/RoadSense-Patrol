@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon></ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="settings.json" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="concept\roadsense-tax-poster-prototype.png" />
+    <EmbeddedResource Include="assets\roadsense-logo.png" />
+    <EmbeddedResource Include="assets\traffic-enforcer.png" />
+    <Compile Remove="tests\**\*.cs" />
+  </ItemGroup>
+
+</Project>
