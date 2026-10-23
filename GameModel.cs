@@ -1,6 +1,6 @@
 namespace RoadSensePatrol;
 
-public enum HazardType { MinorPothole, Pothole, Hump }
+public enum HazardType { MinorPothole, Pothole, Patch, Hump }
 public enum PickupType { RepairCrew, Shield, SignalBoost }
 public enum TrafficType { Car, Truck }
 public enum GamePhase { Attract, Countdown, Playing, Crashing, Results }
@@ -44,7 +44,7 @@ public static class RouteGenerator
         for (float t = 1.5f; t < durationSeconds;)
         {
             int lane = random.Next(3);
-            HazardType type = (HazardType)random.Next(3);
+            HazardType type = (HazardType)random.Next(4);
             result.Add(new(t + offsetSeconds, lane, type, null));
             float progress = t + offsetSeconds;
             if (progress >= 20 && random.NextDouble() < (progress >= 55 ? 0.78 : 0.48))
@@ -108,6 +108,7 @@ public sealed class GameModel
     public int Shield { get; private set; }
     public int RepairCrew { get; private set; }
     public float SignalBoost { get; private set; }
+    public float PatchSlowSeconds { get; private set; }
     public float ScanMeter { get; private set; } = 1;
     public bool ScanHeld { get; set; }
     public bool AccelerateHeld { get; set; }
@@ -151,7 +152,7 @@ public sealed class GameModel
         nextEvent = 0; spawnClock = 0; gameClock = 0; countdown = 3.1f;
         resultIdle = 0; boostSeconds = 0; flashSeconds = 0;
         Score = Streak = BestStreak = Shield = RepairCrew = Handled = Detected = Missed = NearMisses = TrafficPassed = TrafficCollisions = 0;
-        Lane = 1; CarLane = laneFrom = 1; laneMoveTime = 0.34f; ScanMeter = 1; SignalBoost = 0;
+        Lane = 1; CarLane = laneFrom = 1; laneMoveTime = 0.34f; ScanMeter = 1; SignalBoost = PatchSlowSeconds = 0;
         Lives = config.StartingLives; Speed = EffectiveSpeed = config.BaseSpeed;
         BrakeHeld = ScanHeld = AccelerateHeld = false;
         Warning = "SCANNER READY"; WarningType = null; TrafficWarning = false;
@@ -167,7 +168,7 @@ public sealed class GameModel
         bool justPressed = held && !BrakeHeld;
         BrakeHeld = held;
         if (!justPressed || Phase != GamePhase.Playing) return;
-        var hazard = Objects.Where(o => o.Hazard is HazardType.MinorPothole or HazardType.Hump &&
+        var hazard = Objects.Where(o => o.Hazard is HazardType.MinorPothole or HazardType.Patch or HazardType.Hump &&
                 o.Warned && !o.Resolved && !o.ResponseAwarded && o.Lane == Lane && o.Y < PlayerY)
             .OrderByDescending(o => o.Y).FirstOrDefault();
         if (hazard is not null) AwardResponse(hazard);
@@ -221,6 +222,7 @@ public sealed class GameModel
         gameClock += dt;
         spawnClock += dt;
         SignalBoost = Math.Max(0, SignalBoost - dt);
+        PatchSlowSeconds = Math.Max(0, PatchSlowSeconds - dt);
         bool scanning = ScanHeld && ScanMeter > 0;
         ScanMeter = Math.Clamp(ScanMeter + (scanning ? -0.24f : 0.10f) * dt, 0, 1);
         boostSeconds = scanning ? boostSeconds + dt : 0;
@@ -229,6 +231,7 @@ public sealed class GameModel
         if (AccelerateHeld && !BrakeHeld) speed *= 1.35f;
         if (BrakeHeld) speed *= 0.63f;
         if (scanning) speed *= 0.82f;
+        if (PatchSlowSeconds > 0) speed *= 0.68f;
         EffectiveSpeed = speed;
 
         if (nextEvent >= route.Count)
@@ -259,7 +262,7 @@ public sealed class GameModel
             if (obj.Hazard.HasValue && !obj.Warned && obj.Y >= warningY)
             {
                 obj.Warned = true; obj.WarningTime = gameClock; Detected++;
-                SoundRequested?.Invoke(obj.Hazard == HazardType.Pothole ? "major" : obj.Hazard == HazardType.MinorPothole ? "minor" : "hump");
+                SoundRequested?.Invoke(obj.Hazard == HazardType.Pothole ? "major" : obj.Hazard == HazardType.MinorPothole ? "minor" : obj.Hazard == HazardType.Patch ? "patch" : "hump");
             }
             if (obj.Traffic.HasValue && !obj.Resolved)
             {
@@ -293,6 +296,7 @@ public sealed class GameModel
         TrafficWarning = false;
         Warning = active?.Hazard == HazardType.Pothole ? "MAJOR POTHOLE AHEAD"
             : active?.Hazard == HazardType.MinorPothole ? "MINOR POTHOLE AHEAD"
+            : active?.Hazard == HazardType.Patch ? "ROAD PATCHING AHEAD"
             : active?.Hazard == HazardType.Hump ? "ROAD HUMP AHEAD" : "SCANNER READY";
         if (active is null)
         {
@@ -384,7 +388,8 @@ public sealed class GameModel
                 Score = Math.Max(0, Score - (type == HazardType.Pothole ? GameConfig.MajorHitPenalty : GameConfig.MinorHitPenalty));
                 Pop(type == HazardType.Pothole ? "POTHOLE HIT!" : "SLOW DOWN!");
                 flashSeconds = 0.35f;
-                Lives = Math.Max(0, Lives - 1);
+                if (type == HazardType.Patch) PatchSlowSeconds = 2;
+                else Lives = Math.Max(0, Lives - 1);
                 SoundRequested?.Invoke("hit");
             }
             Streak = 0;

@@ -1,6 +1,6 @@
 # RoadSense Patrol
 
-**Spot road hazards. React early. Keep your streak alive.** RoadSense Patrol is a Windows-only, top-down C# arcade driving game designed for short booth sessions. Dodge major potholes and traffic, brake for minor damage and humps, use the scanner for earlier warnings, and compete on a local Top 10 board. You have three lives; traffic and speed increase as you survive.
+**Spot road hazards. React early. Keep your streak alive.** RoadSense Patrol is a Windows-only, top-down C# arcade driving game designed for short booth sessions. Dodge major potholes and traffic, brake for minor damage, road patches, and humps, use the scanner for earlier warnings, and compete on a local Top 10 board. You have three lives; traffic and speed increase as you survive.
 
 Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
 

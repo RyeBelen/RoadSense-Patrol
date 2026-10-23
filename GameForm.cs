@@ -427,6 +427,28 @@ public sealed class GameForm : Form
             FillEllipse(g, Color.FromArgb(103, 110, 108), x - 28, y + 27, 5, 3);
             FillEllipse(g, Color.FromArgb(77, 83, 85), x + 22, y - 27, 4, 3);
         }
+        else if (type == HazardType.Patch)
+        {
+            // Uneven asphalt layers blend into the road without a box or warning outline.
+            PointF[] baseLayer = [new(x - 45, y - 17), new(x - 35, y - 29), new(x - 14, y - 25),
+                new(x + 5, y - 33), new(x + 24, y - 27), new(x + 42, y - 22),
+                new(x + 47, y - 5), new(x + 36, y + 7), new(x + 43, y + 23),
+                new(x + 22, y + 28), new(x + 3, y + 25), new(x - 20, y + 33),
+                new(x - 41, y + 19), new(x - 35, y + 3)];
+            PointF[] freshAsphalt = [new(x - 36, y - 15), new(x - 23, y - 22), new(x - 7, y - 17),
+                new(x + 8, y - 27), new(x + 30, y - 18), new(x + 36, y - 3),
+                new(x + 28, y + 8), new(x + 32, y + 18), new(x + 12, y + 19),
+                new(x - 8, y + 15), new(x - 28, y + 24), new(x - 34, y + 8)];
+            using (var oldEdge = new SolidBrush(Color.FromArgb(60, 65, 68))) g.FillPolygon(oldEdge, baseLayer);
+            using (var asphalt = new SolidBrush(Color.FromArgb(78, 82, 82))) g.FillPolygon(asphalt, freshAsphalt);
+            using var seam = new Pen(Color.FromArgb(43, 48, 51), 3) { LineJoin = LineJoin.Round };
+            g.DrawLines(seam, new PointF[] { new(x - 9, y - 27), new(x - 12, y - 10),
+                new(x - 8, y + 5), new(x - 12, y + 23) });
+            FillEllipse(g, Color.FromArgb(108, 110, 107), x - 33, y - 17, 5, 3);
+            FillEllipse(g, Color.FromArgb(105, 108, 106), x + 18, y - 12, 7, 3);
+            FillEllipse(g, Color.FromArgb(91, 96, 96), x + 22, y + 12, 4, 3);
+            FillEllipse(g, Color.FromArgb(104, 105, 102), x - 24, y + 12, 6, 3);
+        }
         else if (type == HazardType.Pothole)
         {
             var outer = JaggedPoints(x, y, 54, 42);
@@ -494,6 +516,7 @@ public sealed class GameForm : Form
 
         Color warningColor = game.WarningType == HazardType.Pothole ? Red :
             game.WarningType == HazardType.MinorPothole ? Amber :
+            game.WarningType == HazardType.Patch ? Cyan :
             game.WarningType == HazardType.Hump ? Green :
             game.TrafficWarning ? Amber : Teal;
         DrawText(g, "SCANNER / ACTIVE", 13, Cyan, 1017, 29, style: FontStyle.Bold);
@@ -503,12 +526,13 @@ public sealed class GameForm : Form
         DrawText(g, "ROAD WARNING", 12, Muted, 1048, 89, style: FontStyle.Bold);
         string warningLabel = game.WarningType == HazardType.Pothole ? "MAJOR\nPOTHOLE" :
             game.WarningType == HazardType.MinorPothole ? "MINOR\nPOTHOLE" :
+            game.WarningType == HazardType.Patch ? "ROAD PATCH" :
             game.WarningType == HazardType.Hump ? "ROAD HUMP" :
             game.Warning;
         DrawText(g, warningLabel, 20, White, 1024, 139, width: 151, style: FontStyle.Bold);
         string advice = game.WarningType == HazardType.Pothole ? "CHANGE LANES" :
             game.TrafficWarning ? "CHANGE LANES" :
-            game.WarningType is HazardType.MinorPothole or HazardType.Hump ? "BRAKE OR DODGE" : "WATCH THE ROAD";
+            game.WarningType is HazardType.MinorPothole or HazardType.Patch or HazardType.Hump ? "BRAKE OR DODGE" : "WATCH THE ROAD";
         DrawText(g, advice, 13, warningColor, 1024, 229, width: 150, style: FontStyle.Bold);
         FillRound(g, Panel, 1012, 272, 176, 157, 15);
         DrawText(g, "SCAN ENERGY", 12, Muted, 1024, 285, style: FontStyle.Bold);
@@ -518,10 +542,11 @@ public sealed class GameForm : Form
         DrawText(g, game.Shield > 0 ? $"SHIELD  {game.Shield}" : "SHIELD  —", 12, Green, 1024, 369, style: FontStyle.Bold);
         DrawText(g, game.RepairCrew > 0 ? $"REPAIR  {game.RepairCrew}" : "REPAIR  —", 12, Green, 1024, 392, style: FontStyle.Bold);
         if (game.SignalBoost > 0) DrawText(g, $"SIGNAL  {game.SignalBoost:0}s", 11, Cyan, 1024, 414);
-        DrawText(g, "ROAD DISTRESS", 12, Muted, 1018, 452, style: FontStyle.Bold);
-        FillEllipse(g, Red, 1019, 480, 11, 11); DrawText(g, "MAJOR  /  DODGE", 11, White, 1038, 475);
-        FillEllipse(g, Amber, 1019, 503, 11, 11); DrawText(g, "MINOR  /  BRAKE", 11, White, 1038, 498);
-        FillEllipse(g, Green, 1019, 526, 11, 11); DrawText(g, "HUMP  /  BRAKE", 11, White, 1038, 521);
+        DrawText(g, "ROAD DISTRESS", 12, Muted, 1018, 448, style: FontStyle.Bold);
+        FillEllipse(g, Red, 1019, 471, 9, 9); DrawText(g, "MAJOR  /  DODGE", 10, White, 1038, 466);
+        FillEllipse(g, Amber, 1019, 490, 9, 9); DrawText(g, "MINOR  /  BRAKE", 10, White, 1038, 485);
+        FillEllipse(g, Green, 1019, 509, 9, 9); DrawText(g, "HUMP  /  BRAKE", 10, White, 1038, 504);
+        FillEllipse(g, Cyan, 1019, 528, 9, 9); DrawText(g, "PATCH  /  BRAKE", 10, White, 1038, 523);
         UiButton(g, "BRAKE", 1012, 550, 176, 70, White, mouseBrake);
         UiButton(g, "SCAN", 1012, 630, 176, 70, Cyan, mouseScan);
         DrawText(g, "TAP ROAD SIDES TO STEER", 12, White, 600, 686, true, true, FontStyle.Bold);
@@ -617,7 +642,8 @@ public sealed class GameForm : Form
             DrawText(g, "SPOT IT. CHOOSE THE SAFE RESPONSE.", 23, White, 250, 286, style: FontStyle.Bold, width: 720);
             DrawGuideCard(g, 250, 337, Red, "MAJOR POTHOLE", "Change lanes. A direct hit costs a life.");
             DrawGuideCard(g, 610, 337, Amber, "MINOR POTHOLE", "Brake or dodge to keep your streak.");
-            DrawGuideCard(g, 430, 459, Green, "ROAD HUMP", "Brake before crossing the raised surface.");
+            DrawGuideCard(g, 250, 459, Green, "ROAD HUMP", "Brake before crossing the raised surface.");
+            DrawGuideCard(g, 610, 459, Cyan, "ROAD PATCH", "Brake or dodge. Crossing it slows you.");
         }
         UiButton(g, game.Phase == GamePhase.Playing ? "RESUME PATROL" : "START PATROL",
             480, 618, 240, 62, Teal);
@@ -710,7 +736,7 @@ public sealed class GameForm : Form
 
         Card(g, 75, 248, 1050, 226);
         DrawText(g, "HAZARD ROUTE - LAST 25", 16, Muted, 100, 262, style: FontStyle.Bold);
-        DrawText(g, "RED major   AMBER minor   GREEN hump   X missed", 13, White, 802, 269, true, true);
+        DrawText(g, "RED major   AMBER minor   CYAN patch   GREEN hump   X missed", 12, White, 794, 269, true, true);
         var recent = game.History.TakeLast(25).ToList();
         for (int lane = 0; lane < 3; lane++)
         {
@@ -723,7 +749,8 @@ public sealed class GameForm : Form
             var h = recent[i];
             float x = 190 + i * 35.5f;
             float y = 326 + h.Lane * 53;
-            Color color = h.Type == HazardType.Pothole ? Red : h.Type == HazardType.MinorPothole ? Amber : Green;
+            Color color = h.Type == HazardType.Pothole ? Red : h.Type == HazardType.MinorPothole ? Amber :
+                h.Type == HazardType.Patch ? Cyan : Green;
             FillEllipse(g, color, x - 10, y - 10, 20, 20);
             if (!h.Clean)
             {
@@ -740,7 +767,8 @@ public sealed class GameForm : Form
             var costly = misses.OrderByDescending(h => h.Type == HazardType.Pothole ? 3 :
                 h.Type is HazardType.MinorPothole or HazardType.Hump ? 2 : 1).ThenByDescending(h => h.Time).First();
             string label = costly.Type == HazardType.Pothole ? "major pothole" :
-                costly.Type == HazardType.MinorPothole ? "minor pothole" : "road hump";
+                costly.Type == HazardType.MinorPothole ? "minor pothole" :
+                costly.Type == HazardType.Patch ? "road patch" : "road hump";
             DrawText(g, $"COSTLIEST MISS: {label.ToUpperInvariant()} IN LANE {costly.Lane + 1}",
                 15, Red, 600, 498, true, true, FontStyle.Bold);
         }

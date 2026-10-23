@@ -17,6 +17,7 @@ var b = RouteGenerator.Generate(4242, 75);
 var c = RouteGenerator.Generate(4243, 75);
 Check(a.SequenceEqual(b) && !a.SequenceEqual(c), "seeded route determinism");
 Check(a.All(e => e.Lane is >= 0 and <= 2) && a.Any(e => e.Pickup.HasValue), "route lanes and pickups");
+Check(a.Any(e => e.Hazard == HazardType.Patch), "route includes road patches");
 Check(a.Any(e => e.Traffic == TrafficType.Car && e.Time < 38) &&
       a.Any(e => e.Traffic == TrafficType.Truck && e.Time >= 38) &&
       a.Where(e => e.Traffic.HasValue).All(e => e.ColorIndex is >= 0 and < 6),
@@ -102,6 +103,19 @@ mechanics.SetBrake(false);
 mechanics.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Hump, Y = GameModel.PlayerY - 1 });
 mechanics.Update(1f / 60f);
 Check(mechanics.Lives == 2, "hitting a road hump without braking costs a life");
+var patchModel = new GameModel(new GameConfig { BoothSeed = 99 });
+patchModel.Start();
+for (int i = 0; i < 190; i++) patchModel.Update(1f / 60f);
+patchModel.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Patch, Y = GameModel.PlayerY - 1 });
+patchModel.Update(1f / 60f);
+patchModel.Update(1f / 60f);
+Check(patchModel.Lives == 3 && patchModel.PatchSlowSeconds > 0 && patchModel.EffectiveSpeed < patchModel.Speed,
+    "crossing road patch slows car without costing a life");
+patchModel.SetBrake(true);
+patchModel.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Patch, Y = GameModel.PlayerY - 1 });
+patchModel.Update(1f / 60f);
+Check(patchModel.Handled == 1 && patchModel.Missed == 1,
+    "braking handles road patch cleanly");
 var warningModel = new GameModel(new GameConfig { BoothSeed = 1 });
 warningModel.Start();
 for (int i = 0; i < 190; i++) warningModel.Update(1f / 60f);
