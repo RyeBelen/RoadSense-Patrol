@@ -51,6 +51,7 @@ RoadSense Patrol is released under the [MIT License](LICENSE).
 | Open or close menu | Esc | MENU / CLOSE button |
 | Rankings and hazard guide | R / H while menu is open | Menu tabs |
 | Change lane | A/D or Left/Right | Tap left/right side of road |
+| Temporary speed boost | Hold W | Keyboard only |
 | Brake | Hold S or Down | Hold BRAKE button |
 | Scan Boost | Hold B | Hold SCAN BOOST button |
 | Mute | M | — |
@@ -68,7 +69,7 @@ Edit `settings.json` beside the executable:
 - `boothSeed`: set to an integer for the same route for every player; use `null` for randomized routes.
 - `fullscreenOnStart`: set to `true` for a fullscreen booth display.
 - `startingLives`: default 3.
-- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve.
+- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. Holding W temporarily raises effective speed by 35%; releasing it returns to the current progression speed.
 - `prizeScore`: score target, default 5000.
 - `showPrizeTarget`: set to `true` only when the booth actually offers a prize.
 

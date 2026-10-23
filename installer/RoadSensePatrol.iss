@@ -1,5 +1,5 @@
 #define AppName "RoadSense Patrol"
-#define AppVersion "0.1.0"
+#define AppVersion "0.2.0"
 
 [Setup]
 AppId={{D48A4647-C28D-4D97-954C-0276ECF908DF}
@@ -31,8 +31,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "..\publish-redesign\RoadSensePatrol.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\publish-redesign\settings.json"; DestDir: "{app}"; Flags: onlyifdoesntexist
+Source: "..\publish\RoadSensePatrol.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\publish\settings.json"; DestDir: "{app}"; Flags: onlyifdoesntexist
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]

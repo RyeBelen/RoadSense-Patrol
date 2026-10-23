@@ -25,14 +25,22 @@ Key(Keys.H);
 Save("distress-guide.png");
 Key(Keys.Escape);
 model.Start();
+for (int i = 0; i < 190; i++) model.Update(1f / 60f);
+model.AccelerateHeld = true;
+model.Update(1f / 60f);
+Save("speed-boost.png");
+model.AccelerateHeld = false;
+model.ChangeLane(1);
+for (int i = 0; i < 6; i++) model.Update(1f / 60f);
+Save("lane-transition.png");
+model.Start();
 for (int i = 0; i < 12 * 60; i++) model.Update(1f / 60f);
 Save("gameplay.png");
 var hazardPreview = new[]
 {
     new RoadObject { Lane = 0, Hazard = HazardType.MinorPothole, Y = 220, Warned = true },
     new RoadObject { Lane = 1, Hazard = HazardType.Pothole, Y = 220, Warned = true },
-    new RoadObject { Lane = 2, Hazard = HazardType.Patch, Y = 220, Warned = true },
-    new RoadObject { Lane = 2, Hazard = HazardType.Hump, Y = 390, Warned = true }
+    new RoadObject { Lane = 2, Hazard = HazardType.Hump, Y = 220, Warned = true }
 };
 var originalObjects = model.Objects.ToArray();
 model.Objects.Clear();

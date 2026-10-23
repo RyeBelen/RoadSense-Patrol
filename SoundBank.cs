@@ -11,7 +11,7 @@ public sealed class SoundBank : IDisposable
     {
         Add("start", 440, 130); Add("count", 560, 80); Add("go", 780, 180);
         Add("lane", 460, 45); Add("major", 220, 180); Add("minor", 410, 110);
-        Add("patch", 620, 100); Add("response", 800, 110); Add("clean", 680, 70);
+        Add("hump", 620, 100); Add("response", 800, 110); Add("clean", 680, 70);
         Add("near", 930, 130); Add("hit", 150, 250); Add("pickup", 1020, 150);
         for (int i = 1; i <= GameConfig.MultiplierCap; i++) Add("clean" + i, 580 + i * 65, 80);
         Add("results", 760, 250);

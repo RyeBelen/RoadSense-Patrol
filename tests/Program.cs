@@ -34,6 +34,35 @@ speedModel.Start();
 for (int i = 0; i < 63 * 60; i++) speedModel.Update(1f / 60f);
 Check(speedModel.Speed >= 325 && speedModel.Speed < 350,
     "speed has a visible rise after one minute of survival");
+float cruiseSpeed = speedModel.Speed;
+speedModel.AccelerateHeld = true;
+speedModel.Update(1f / 60f);
+Check(speedModel.EffectiveSpeed > speedModel.Speed * 1.34f && speedModel.Speed > cruiseSpeed,
+    "W boost raises effective speed without resetting progression");
+speedModel.AccelerateHeld = false;
+speedModel.Update(1f / 60f);
+Check(Math.Abs(speedModel.EffectiveSpeed - speedModel.Speed) < .01f && speedModel.Speed > cruiseSpeed,
+    "releasing W returns to current progression speed");
+var steeringModel = new GameModel(new GameConfig { BoothSeed = 88 });
+steeringModel.Start();
+for (int i = 0; i < 190; i++) steeringModel.Update(1f / 60f);
+steeringModel.ChangeLane(1);
+steeringModel.Update(.08f);
+Check(steeringModel.CarLane > 1 && steeringModel.CarLane < 2,
+    "car moves visibly between lanes");
+for (int i = 0; i < 30; i++) steeringModel.Update(1f / 60f);
+Check(Math.Abs(steeringModel.CarLane - 2) < .001f,
+    "car finishes lane change smoothly");
+steeringModel.ChangeLane(-1);
+steeringModel.Objects.Add(new RoadObject { Lane = 2, Hazard = HazardType.Pothole, Y = GameModel.PlayerY - 1 });
+steeringModel.Update(1f / 60f);
+Check(steeringModel.Lives == 2,
+    "collision follows the visible car during a lane change");
+for (int i = 0; i < 30; i++) steeringModel.Update(1f / 60f);
+steeringModel.Objects.Add(new RoadObject { Lane = 2, Hazard = HazardType.Pothole, Y = GameModel.PlayerY - 1 });
+steeringModel.Update(1f / 60f);
+Check(steeringModel.Lives == 2,
+    "completed lane change clears the former lane");
 bool crashed = false;
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
 {
@@ -65,9 +94,14 @@ float beforeScan = mechanics.ScanMeter;
 for (int i = 0; i < 60; i++) mechanics.Update(1f / 60f);
 Check(mechanics.ScanMeter < beforeScan, "scan boost drains meter");
 mechanics.ScanHeld = false;
-mechanics.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Patch, Y = GameModel.PlayerY - 1 });
+mechanics.SetBrake(true);
+mechanics.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Hump, Y = GameModel.PlayerY - 1 });
 mechanics.Update(1f / 60f);
-Check(mechanics.PatchSlowSeconds > 1.9f && mechanics.Lives == 3, "unsafe patch slows without costing a life");
+Check(mechanics.Lives == 3, "braking makes a road hump safe");
+mechanics.SetBrake(false);
+mechanics.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Hump, Y = GameModel.PlayerY - 1 });
+mechanics.Update(1f / 60f);
+Check(mechanics.Lives == 2, "hitting a road hump without braking costs a life");
 var warningModel = new GameModel(new GameConfig { BoothSeed = 1 });
 warningModel.Start();
 for (int i = 0; i < 190; i++) warningModel.Update(1f / 60f);
