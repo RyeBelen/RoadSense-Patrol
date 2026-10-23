@@ -6,7 +6,7 @@ Road hazards and scanner detections are simulated for demonstration. The game do
 
 The Windows executable and game window use the RoadSense logo. When the third life is lost, the game plays the supplied crash sound; the original source clip is `crash sound.mp3` and the embedded playback asset is `assets/crash.wav`.
 
-Hold **W** to build speed gradually and move toward the top of the road. Releasing W gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead and reveal hazards in side lanes. Normal radar reveals road distress only in your current lane; detected hazards remain visible after you change lanes.
+Hold **W** or **Up Arrow** to build speed gradually and move toward the top of the road. Releasing it gradually returns the car and speed to the run's current cruise level. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or Left/Right to steer, **S** or Down to brake, and **B** to scan farther ahead and reveal hazards in side lanes. Normal radar reveals road distress only in your current lane; detected hazards remain visible after you change lanes.
 
 ## Download
 
@@ -55,7 +55,7 @@ RoadSense Patrol is released under the [MIT License](LICENSE).
 | Open or close menu | Esc | MENU / CLOSE button |
 | Rankings and hazard guide | R / H while menu is open | Menu tabs |
 | Change lane | A/D or Left/Right | Tap left/right side of road |
-| Temporary speed boost | Hold W | Keyboard only |
+| Temporary speed boost and move forward | Hold W or Up Arrow | Keyboard only |
 | Brake | Hold S or Down | Hold BRAKE button |
 | Scan Boost | Hold B | Hold SCAN BOOST button |
 | Mute | M | — |
@@ -73,7 +73,7 @@ Edit `settings.json` beside the executable:
 - `boothSeed`: set to an integer for the same route for every player; use `null` for randomized routes.
 - `fullscreenOnStart`: set to `true` for a fullscreen booth display.
 - `startingLives`: default 3.
-- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. Holding W ramps effective speed up to 75% above cruise over about 1.3 seconds; releasing W eases it back to the current progression speed.
+- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. Holding W or Up Arrow ramps effective speed up to 75% above cruise over about 1.3 seconds; releasing it eases back to the current progression speed.
 - `prizeScore`: score target, default 5000.
 - `showPrizeTarget`: set to `true` only when the booth actually offers a prize.
 
@@ -82,7 +82,7 @@ Game scoring values, multiplier cap, hazard timing, and difficulty progression a
 ## Booth test checklist
 
 - Play until all three lives are gone with A/D, S, and B; check rising speed, cars, trucks, warnings, score chain, hits, crash animation, pickups, results, and replay.
-- Check Left/Right and Down arrow controls.
+- Check Left/Right, Up, and Down arrow controls.
 - On a touch display, tap the road and hold both on-screen buttons. The Top 10 entry requires a keyboard.
 - Save a score, restart the app, and verify the Top 10 persists.
 - Leave results untouched for 20 seconds and verify return to attract mode.

@@ -86,11 +86,12 @@ public sealed class GameForm : Form
     {
         if (!IsHandleCreated) return;
         bool foreground = GetForegroundWindow() == Handle;
-        bool wDown = foreground && GetAsyncKeyState((int)Keys.W) < 0;
-        SyncBoostKey(foreground, wDown);
+        bool boostDown = foreground && (GetAsyncKeyState((int)Keys.W) < 0 ||
+            GetAsyncKeyState((int)Keys.Up) < 0);
+        SyncBoostKey(foreground, boostDown);
     }
 
-    private void SyncBoostKey(bool foreground, bool wDown)
+    private void SyncBoostKey(bool foreground, bool boostDown)
     {
         if (!foreground || menuOpen)
         {
@@ -98,7 +99,7 @@ public sealed class GameForm : Form
             return;
         }
         if (game.Phase is GamePhase.Countdown or GamePhase.Playing)
-            game.AccelerateHeld = wDown;
+            game.AccelerateHeld = boostDown;
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -124,13 +125,13 @@ public sealed class GameForm : Form
             if (!e.Control && !e.Alt && e.KeyCode != Keys.ShiftKey)
             {
                 StartGame();
-                if (e.KeyCode == Keys.W) game.PressBoost();
+                if (e.KeyCode is Keys.W or Keys.Up) game.PressBoost();
             }
             return;
         }
         if (game.Phase == GamePhase.Countdown)
         {
-            if (e.KeyCode == Keys.W) game.PressBoost();
+            if (e.KeyCode is Keys.W or Keys.Up) game.PressBoost();
             return;
         }
         if (game.Phase == GamePhase.Results)
@@ -153,14 +154,16 @@ public sealed class GameForm : Form
         if (e.KeyCode is Keys.D or Keys.Right) game.ChangeLane(1);
         if (e.KeyCode is Keys.S or Keys.Down) game.SetBrake(true);
         if (e.KeyCode == Keys.B) game.ScanHeld = true;
-        if (e.KeyCode == Keys.W) game.PressBoost();
+        if (e.KeyCode is Keys.W or Keys.Up) game.PressBoost();
     }
 
     private void OnKeyUp(object? sender, KeyEventArgs e)
     {
         if (e.KeyCode is Keys.S or Keys.Down) game.SetBrake(mouseBrake);
         if (e.KeyCode == Keys.B) game.ScanHeld = mouseScan;
-        if (e.KeyCode == Keys.W) game.AccelerateHeld = false;
+        if (e.KeyCode is Keys.W or Keys.Up)
+            game.AccelerateHeld = IsHandleCreated && GetForegroundWindow() == Handle &&
+                GetAsyncKeyState((int)(e.KeyCode == Keys.W ? Keys.Up : Keys.W)) < 0;
     }
 
     private void OnMouseDown(object? sender, MouseEventArgs e)
@@ -648,7 +651,7 @@ public sealed class GameForm : Form
         }
         DrawSpeedometer(g);
         DrawText(g, "A / D  STEER", 13, White, 20, 604, style: FontStyle.Bold);
-        DrawText(g, game.AccelerateHeld ? "W  ACCELERATING" : "HOLD W  BOOST", 12, Amber, 20, 632, style: FontStyle.Bold);
+        DrawText(g, game.AccelerateHeld ? "FORWARD BOOST" : "HOLD W / UP", 12, Amber, 20, 632, style: FontStyle.Bold);
         DrawText(g, "S  BRAKE   •   B  SCAN", 12, Muted, 20, 660);
 
         Color warningColor = game.WarningType == HazardType.Pothole ? Red :
@@ -754,7 +757,7 @@ public sealed class GameForm : Form
             DrawText(g, "STEER", 15, Cyan, 286, 450, style: FontStyle.Bold);
             DrawText(g, "A / D or arrow keys", 16, White, 286, 481);
             DrawText(g, "BOOST / BRAKE", 15, Amber, 520, 450, style: FontStyle.Bold);
-            DrawText(g, "Hold W / S", 16, White, 520, 481);
+            DrawText(g, "W or Up / S", 16, White, 520, 481);
             DrawText(g, "SCAN", 15, Teal, 765, 450, style: FontStyle.Bold);
             DrawText(g, "Hold B", 16, White, 765, 481);
         }
@@ -815,7 +818,7 @@ public sealed class GameForm : Form
         DrawText(g, "THREE LIVES", 20, Red, 18, 390, style: FontStyle.Bold);
         DrawText(g, "Speed keeps rising.", 14, Muted, 18, 430);
         DrawText(g, "A / D   CHANGE LANE", 12, White, 18, 533);
-        DrawText(g, "W   SPEED BOOST", 12, Amber, 18, 565);
+        DrawText(g, "W / UP   SPEED BOOST", 12, Amber, 18, 565);
         DrawText(g, "S   BRAKE", 12, White, 18, 597);
         DrawText(g, "B   SCAN BOOST", 12, White, 18, 629);
 

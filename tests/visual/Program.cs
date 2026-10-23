@@ -48,9 +48,23 @@ using (var inputForm = new GameForm())
     for (int i = 0; i < 90; i++) inputModel.Update(1f / 60f);
     if (inputModel.AccelerateHeld || Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
         throw new Exception("Losing game focus must release W and restore cruise speed");
+    inputModel.Attract();
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Up)]);
+    if (inputModel.Phase != GamePhase.Countdown || !inputModel.AccelerateHeld)
+        throw new Exception("Up Arrow must start the game and enable forward boost");
+    for (int i = 0; i < 280; i++) inputModel.Update(1f / 60f);
+    if (inputModel.Phase != GamePhase.Playing ||
+        Math.Abs(inputModel.CarY - GameModel.BoostFrontY) > .01f ||
+        inputModel.EffectiveSpeed < inputModel.Speed * 1.74f)
+        throw new Exception("Holding Up Arrow must move the car to the top and increase speed");
+    keyUpHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Up)]);
+    for (int i = 0; i < 90; i++) inputModel.Update(1f / 60f);
+    if (inputModel.AccelerateHeld || Math.Abs(inputModel.CarY - GameModel.PlayerY) > .01f ||
+        Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
+        throw new Exception("Releasing Up Arrow must return the car and speed to cruise");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.4.7")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.4.8")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
