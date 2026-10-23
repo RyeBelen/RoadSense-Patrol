@@ -17,12 +17,15 @@ public sealed class GameForm : Form
     private readonly Image? roadsidePoster = LoadRoadsidePoster();
     private readonly Image? brandLogo = LoadBrandLogo();
     private readonly Image? majorPotholeSprite = LoadMajorPotholeSprite();
-    private readonly CrashSceneFrames crashScene = new();
+    private CrashSceneFrames crashScene = new();
+    private readonly CarSkinArt carSkins = new();
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 16 };
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private double previousTime, accumulator, idleTime, roadScroll;
     private bool fullscreen, scoreSubmitted, mouseBrake, mouseScan;
     private bool menuOpen;
+    private bool selectingCar;
+    private int selectedCar = 1;
     private MenuPage menuPage = MenuPage.Home;
     private PointF pointer = new(-100, -100);
     private string typedInitials = "";
@@ -37,7 +40,7 @@ public sealed class GameForm : Form
     public GameForm()
     {
         game = new(config);
-        game.SoundRequested += audio.Play;
+        game.SoundRequested += cue => audio.Play(cue == "crash" ? CrashSoundName(selectedCar) : cue);
         this.Text = $"RoadSense Patrol v{typeof(GameForm).Assembly.GetName().Version?.ToString(3)}";
         Icon = LoadAppIcon() ?? Icon;
         ClientSize = new Size(1280, 768);
@@ -67,13 +70,13 @@ public sealed class GameForm : Form
         previousTime = now;
         while (accumulator >= 1.0 / 60)
         {
-            if (!menuOpen) game.Update(1f / 60f);
+            if (!menuOpen && !selectingCar) game.Update(1f / 60f);
             idleTime += 1.0 / 60;
-            if (!menuOpen) roadScroll += game.Phase == GamePhase.Attract ? 3.6 :
+            if (!menuOpen && !selectingCar) roadScroll += game.Phase == GamePhase.Attract ? 3.6 :
                 3.6 * Math.Max(0.45f, game.EffectiveSpeed / config.BaseSpeed);
             shake = Math.Max(0, shake - 1f / 60f);
             if (game.FlashSeconds > 0) shake = 0.15f;
-            if (game.Phase == GamePhase.Results && game.ResultIdle >= 20)
+            if (!selectingCar && game.Phase == GamePhase.Results && game.ResultIdle >= 20)
             {
                 if (!scoreSubmitted && board.Qualifies(game.Score)) SubmitScore(automatic: true);
                 game.Attract();
@@ -94,7 +97,7 @@ public sealed class GameForm : Form
 
     private void SyncBoostKey(bool foreground, bool boostDown)
     {
-        if (!foreground || menuOpen)
+        if (!foreground || menuOpen || selectingCar)
         {
             game.AccelerateHeld = false;
             return;
@@ -113,6 +116,14 @@ public sealed class GameForm : Form
             return;
         }
         if (e.KeyCode == Keys.F11) { ToggleFullscreen(); return; }
+        if (selectingCar)
+        {
+            if (e.KeyCode is Keys.Left or Keys.A) selectedCar = (selectedCar + 2) % 3;
+            else if (e.KeyCode is Keys.Right or Keys.D) selectedCar = (selectedCar + 1) % 3;
+            else if (e.KeyCode is Keys.Enter or Keys.Space) ConfirmCarSelection();
+            else if (e.KeyCode == Keys.Escape) selectingCar = false;
+            return;
+        }
         if (game.Phase is GamePhase.Crashing or GamePhase.CrashOutro)
         {
             if (e.KeyCode is Keys.Space or Keys.Enter) game.SkipCrash();
@@ -131,7 +142,6 @@ public sealed class GameForm : Form
             if (!e.Control && !e.Alt && e.KeyCode != Keys.ShiftKey)
             {
                 StartGame();
-                if (e.KeyCode is Keys.W or Keys.Up) game.PressBoost();
             }
             return;
         }
@@ -177,6 +187,21 @@ public sealed class GameForm : Form
         Focus();
         if (game.Phase is GamePhase.Crashing or GamePhase.CrashOutro) { game.SkipCrash(); return; }
         var p = ToGame(e.Location);
+        if (selectingCar)
+        {
+            if (Hit(p, 20, 16, 145, 48)) { selectingCar = false; return; }
+            for (int i = 0; i < 3; i++)
+            {
+                float x = 22 + i * 394;
+                if (Hit(p, x, 94, 366, 590))
+                {
+                    selectedCar = i;
+                    if (Hit(p, x + 25, 615, 316, 52)) ConfirmCarSelection();
+                    return;
+                }
+            }
+            return;
+        }
         if (menuOpen)
         {
             if (Hit(p, 24, 22, 96, 48) || Hit(p, 950, 42, 204, 62)) { menuOpen = false; menuPage = MenuPage.Home; return; }
@@ -218,10 +243,28 @@ public sealed class GameForm : Form
     private void StartGame()
     {
         menuOpen = false;
+        selectingCar = true;
+        game.AccelerateHeld = false;
+    }
+
+    private void ConfirmCarSelection()
+    {
+        var nextCrashScene = new CrashSceneFrames(selectedCar);
+        crashScene.Dispose();
+        crashScene = nextCrashScene;
+        game.SetCrashSceneDuration(crashScene.ClipDurationSeconds);
+        selectingCar = false;
         scoreSubmitted = false;
         typedInitials = "";
         game.Start();
     }
+
+    private static string CrashSoundName(int carIndex) => carIndex switch
+    {
+        1 => "crash2",
+        2 => "crash3",
+        _ => "crash"
+    };
 
     private void SubmitScore(bool automatic = false)
     {
@@ -256,6 +299,7 @@ public sealed class GameForm : Form
         float scale = Math.Min(ClientSize.Width / 1200f, ClientSize.Height / 720f);
         g.TranslateTransform((ClientSize.Width - 1200 * scale) / 2, (ClientSize.Height - 720 * scale) / 2);
         g.ScaleTransform(scale, scale);
+        if (selectingCar) { DrawCarSelection(g); return; }
         if (shake > 0) g.TranslateTransform((float)(Random.Shared.NextDouble() - 0.5) * 8, (float)(Random.Shared.NextDouble() - 0.5) * 8);
         if (game.Phase == GamePhase.CrashOutro)
         {
@@ -474,15 +518,72 @@ public sealed class GameForm : Form
         }
     }
 
+    private void DrawCarSelection(Graphics g)
+    {
+        Fill(g, Color.FromArgb(6, 18, 36), 0, 0, 1200, 720);
+        for (int i = 0; i < 15; i++)
+        {
+            float stripe = (float)((i * 117 + idleTime * 20) % 1450) - 120;
+            using var pen = new Pen(Color.FromArgb(17, Cyan), 2);
+            g.DrawLine(pen, stripe, 0, stripe - 180, 720);
+        }
+        DrawText(g, "CHOOSE YOUR RIDE", 39, White, 600, 30, true, false, FontStyle.Bold);
+        DrawText(g, "PICK A CAR BEFORE THE PATROL BEGINS", 14, Color.FromArgb(115, 174, 213), 600, 79,
+            true, false, FontStyle.Bold);
+        UiButton(g, "← BACK", 20, 16, 145, 48, Cyan);
+        string[] names = ["THE KING", "LIGHTNING McQUEEN", "DOC HUDSON"];
+        string[] numbers = ["43", "95", "51"];
+        for (int i = 0; i < 3; i++)
+        {
+            float x = 22 + i * 394;
+            bool hover = Hit(pointer, x, 94, 366, 590);
+            bool active = i == selectedCar;
+            float lift = hover ? 5 + (float)Math.Sin(idleTime * 6) * 2 : 0;
+            float y = 100 - lift;
+            Color accent = active || hover ? Cyan : Color.FromArgb(34, 92, 142);
+            FillRound(g, Color.FromArgb(active ? 75 : hover ? 40 : 15, Cyan), x - 5, y - 5, 376, 585, 20);
+            FillRound(g, Color.FromArgb(11, 33, 59), x, y, 366, 575, 16);
+            using (var rim = new Pen(accent, active ? 4 : hover ? 3 : 2))
+                g.DrawRectangle(rim, x + 2, y + 2, 362, 571);
+            using (var line = new Pen(Color.FromArgb(active ? 105 : 40, Cyan), 2))
+            {
+                g.DrawLine(line, x + 18, y + 28, x + 55, y + 28);
+                g.DrawLine(line, x + 311, y + 28, x + 348, y + 28);
+                g.DrawLine(line, x + 18, y + 544, x + 55, y + 544);
+                g.DrawLine(line, x + 311, y + 544, x + 348, y + 544);
+            }
+            if (active || hover)
+            {
+                for (int beam = 0; beam < 2; beam++)
+                {
+                    float bx = x + (beam == 0 ? 44 : 317);
+                    float drift = (float)Math.Sin(idleTime * 3 + beam) * 8;
+                    using var glow = new Pen(Color.FromArgb(90, Cyan), 3);
+                    g.DrawLine(glow, bx, y + 95 + drift, bx, y + 420 + drift);
+                }
+            }
+            FillEllipse(g, Color.FromArgb(active ? 42 : 19, Cyan), x + 60, y + 420, 245, 68);
+            var art = carSkins.Display(i);
+            float carHeight = i == 1 ? 390 : 385;
+            float carWidth = carHeight * art.Width / art.Height;
+            float bob = hover ? (float)Math.Sin(idleTime * 5 + i) * 3 : 0;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.DrawImage(art, x + (366 - carWidth) / 2, y + 31 + bob, carWidth, carHeight);
+            DrawText(g, names[i], 22, White, x + 183, y + 460, true, false, FontStyle.Bold);
+            DrawText(g, $"NO. {numbers[i]}", 13, active ? Cyan : Muted, x + 183, y + 497, true, false,
+                FontStyle.Bold);
+            UiButton(g, active ? "SELECTED  •  START" : "SELECT", x + 25, 615 - lift, 316, 52,
+                active ? Cyan : Color.FromArgb(59, 133, 188), active);
+        }
+        DrawText(g, "← → OR A / D TO CHOOSE     •     ENTER TO START", 13, Muted, 600, 687, true,
+            false, FontStyle.Bold);
+    }
+
     private void DrawCar(Graphics g, float x, float y)
     {
-        FillRound(g, Color.FromArgb(80, 0, 0, 0), x - 35, y - 46, 78, 115, 18);
-        FillRound(g, Cyan, x - 34, y - 55, 68, 110, 14);
-        FillRound(g, Color.FromArgb(8, 71, 88), x - 26, y - 32, 52, 25, 5);
-        FillRound(g, Color.FromArgb(8, 71, 88), x - 25, y + 19, 50, 21, 5);
-        Fill(g, White, x - 28, y - 51, 14, 5); Fill(g, White, x + 14, y - 51, 14, 5);
-        Fill(g, Red, x - 28, y + 48, 15, 5); Fill(g, Red, x + 13, y + 48, 15, 5);
-        FillRound(g, Teal, x - 39, y - 15, 7, 20, 3); FillRound(g, Teal, x + 32, y - 15, 7, 20, 3);
+        FillEllipse(g, Color.FromArgb(65, 0, 0, 0), x - 34, y - 55, 75, 122);
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.DrawImage(carSkins.Driving(selectedCar), x - 34, y - 61, 68, 122);
     }
 
     private void DrawTraffic(Graphics g, float x, float y, TrafficType kind, int colorIndex)
@@ -888,8 +989,11 @@ public sealed class GameForm : Form
         FillRound(g, Panel, 56, 78, 1088, 568, 18);
         Fill(g, Red, 56, 78, 1088, 5);
         DrawText(g, "CRASH REPLAY", 27, White, 89, 101, style: FontStyle.Bold);
-        DrawText(g, "FINAL LIFE LOST", 15, Red, 1110, 109, true, false, FontStyle.Bold);
-        g.DrawImage(crashScene.FrameAt(game.CrashElapsed), 90, 156, 1020, 420);
+        DrawText(g, "FINAL LIFE LOST", 15, Red, 1015, 109, true, false, FontStyle.Bold);
+        var frame = crashScene.FrameAt(game.CrashElapsed);
+        float scale = Math.Min(1020f / frame.Width, 420f / frame.Height);
+        float width = frame.Width * scale, height = frame.Height * scale;
+        g.DrawImage(frame, 90 + (1020 - width) / 2, 156 + (420 - height) / 2, width, height);
         using (var border = new Pen(Border, 2)) g.DrawRectangle(border, 90, 156, 1020, 420);
         DrawText(g, "TAP, SPACE OR ENTER TO SKIP", 14, Muted, 600, 611, true, true, FontStyle.Bold);
     }

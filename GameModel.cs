@@ -140,11 +140,17 @@ public sealed class GameModel
     public float DisplayKph => Math.Clamp(CruiseKph +
         (EffectiveSpeed / Math.Max(1, Speed) - 1) * (100f / 3f), 0, 125);
     public const float CrashDurationSeconds = 145f / 15f;
+    public float CrashSceneDurationSeconds { get; private set; } = CrashDurationSeconds;
+    public void SetCrashSceneDuration(float seconds)
+    {
+        if (seconds <= 0 || !float.IsFinite(seconds)) throw new ArgumentOutOfRangeException(nameof(seconds));
+        CrashSceneDurationSeconds = seconds;
+    }
     public const float CrashOutroDurationSeconds = .8f;
     public float CrashProgress => Phase == GamePhase.CrashOutro ? 1 :
-        Phase == GamePhase.Crashing ? 1 - crashSeconds / CrashDurationSeconds : 0;
-    public float CrashElapsed => Phase == GamePhase.CrashOutro ? CrashDurationSeconds :
-        Phase == GamePhase.Crashing ? CrashDurationSeconds - crashSeconds : 0;
+        Phase == GamePhase.Crashing ? 1 - crashSeconds / CrashSceneDurationSeconds : 0;
+    public float CrashElapsed => Phase == GamePhase.CrashOutro ? CrashSceneDurationSeconds :
+        Phase == GamePhase.Crashing ? CrashSceneDurationSeconds - crashSeconds : 0;
     public float CrashOutroProgress => Phase == GamePhase.CrashOutro ?
         1 - crashOutroSeconds / CrashOutroDurationSeconds : 0;
     public float Elapsed => gameClock;
@@ -396,7 +402,7 @@ public sealed class GameModel
         if (Lives <= 0)
         {
             Phase = GamePhase.Crashing;
-            crashSeconds = CrashDurationSeconds;
+            crashSeconds = CrashSceneDurationSeconds;
             ScanHeld = BrakeHeld = AccelerateHeld = false;
             IsScanning = false;
             SoundRequested?.Invoke("crash");

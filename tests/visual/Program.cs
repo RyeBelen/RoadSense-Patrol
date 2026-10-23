@@ -6,9 +6,18 @@ using RoadSensePatrol;
 
 Application.EnableVisualStyles();
 var resources = typeof(GameForm).Assembly;
-using (var crashWave = resources.GetManifestResourceStream(resources.GetManifestResourceNames()
-    .Single(n => n.EndsWith("crash.wav", StringComparison.OrdinalIgnoreCase)))!)
-using (var crashPlayer = new SoundPlayer(crashWave)) crashPlayer.Load();
+foreach (string suffix in new[] { "crash.wav", "crash-2.wav", "crash-3.wav" })
+{
+    using var crashWave = resources.GetManifestResourceStream(resources.GetManifestResourceNames()
+        .Single(n => n.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)))!;
+    using var crashPlayer = new SoundPlayer(crashWave);
+    crashPlayer.Load();
+}
+var crashSoundName = typeof(GameForm).GetMethod("CrashSoundName", BindingFlags.Static |
+    BindingFlags.NonPublic)!;
+string SoundFor(int car) => (string)crashSoundName.Invoke(null, [car])!;
+if (SoundFor(0) != "crash" || SoundFor(1) != "crash2" || SoundFor(2) != "crash3")
+    throw new Exception("Crash sounds must follow the selected car");
 if (!resources.GetManifestResourceNames().Any(n => n.EndsWith("roadsense-app.ico", StringComparison.OrdinalIgnoreCase)))
     throw new Exception("RoadSense window icon is missing");
 using (var scene = new CrashSceneFrames())
@@ -16,6 +25,14 @@ using (var scene = new CrashSceneFrames())
     if (Math.Abs(CrashSceneFrames.DurationSeconds - GameModel.CrashDurationSeconds) > .001f ||
         scene.FrameAt(0).Width != 1020 || scene.FrameAt(9.6f).Height < 400)
         throw new Exception("Embedded crash scene frames or timing are invalid");
+}
+using (var lightning = new CrashSceneFrames(1))
+using (var doc = new CrashSceneFrames(2))
+{
+    if (lightning.ClipDurationSeconds < 27 || doc.ClipDurationSeconds < 7 ||
+        lightning.FrameAt(0).Width < 800 || lightning.FrameAt(27.5f).Height < 350 ||
+        doc.FrameAt(0).Width < 650 || doc.FrameAt(7.1f).Height < 400)
+        throw new Exception("The Lightning McQueen or Doc Hudson crash scene is missing or incomplete");
 }
 var inputHandler = typeof(GameForm).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic,
     null, [typeof(object), typeof(KeyEventArgs)], null)!;
@@ -25,6 +42,18 @@ using (var inputForm = new GameForm())
 {
     var inputModel = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!
         .GetValue(inputForm)!;
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.W)]);
+    if (!(bool)typeof(GameForm).GetField("selectingCar", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(inputForm)!) throw new Exception("Start must open car selection");
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Right)]);
+    if ((int)typeof(GameForm).GetField("selectedCar", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(inputForm)! != 2) throw new Exception("Arrow keys must change the selected car");
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Enter)]);
+    var selectedScene = (CrashSceneFrames)typeof(GameForm).GetField("crashScene", BindingFlags.Instance |
+        BindingFlags.NonPublic)!.GetValue(inputForm)!;
+    if (selectedScene.CarIndex != 2 ||
+        Math.Abs(inputModel.CrashSceneDurationSeconds - selectedScene.ClipDurationSeconds) > .001f)
+        throw new Exception("Doc Hudson selection must load the third crash scene and its duration");
     inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.W)]);
     if (inputModel.Phase != GamePhase.Countdown || !inputModel.AccelerateHeld)
         throw new Exception("W must start the game and stay held through countdown");
@@ -56,6 +85,8 @@ using (var inputForm = new GameForm())
         throw new Exception("Losing game focus must release W and restore cruise speed");
     inputModel.Attract();
     inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Up)]);
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Enter)]);
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Up)]);
     if (inputModel.Phase != GamePhase.Countdown || !inputModel.AccelerateHeld)
         throw new Exception("Up Arrow must start the game and enable forward boost");
     for (int i = 0; i < 280; i++) inputModel.Update(1f / 60f);
@@ -68,9 +99,17 @@ using (var inputForm = new GameForm())
     if (inputModel.AccelerateHeld || Math.Abs(inputModel.CarY - GameModel.PlayerY) > .01f ||
         Math.Abs(inputModel.EffectiveSpeed - inputModel.Speed) > .01f)
         throw new Exception("Releasing Up Arrow must return the car and speed to cruise");
+    inputModel.Attract();
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Enter)]);
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Right)]);
+    inputHandler.Invoke(inputForm, [null, new KeyEventArgs(Keys.Enter)]);
+    if (((CrashSceneFrames)typeof(GameForm).GetField("crashScene", BindingFlags.Instance |
+        BindingFlags.NonPublic)!.GetValue(inputForm)!).CarIndex != 0 ||
+        Math.Abs(inputModel.CrashSceneDurationSeconds - CrashSceneFrames.DurationSeconds) > .001f)
+        throw new Exception("The King selection must load the first crash scene");
 }
 using var form = new GameForm();
-if (!form.Text.Contains("v0.5.1")) throw new Exception("Window title must identify the build being tested");
+if (!form.Text.Contains("v0.7.1")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {
@@ -83,6 +122,11 @@ Save("start.png");
 var keyHandler = typeof(GameForm).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic,
     null, [typeof(object), typeof(KeyEventArgs)], null)!;
 void Key(Keys key) => keyHandler.Invoke(form, [null, new KeyEventArgs(key)]);
+Key(Keys.Enter);
+Save("car-selection.png");
+Key(Keys.Right);
+Save("car-selection-doc.png");
+Key(Keys.Escape);
 Key(Keys.Escape);
 Save("menu.png");
 Key(Keys.R);
@@ -90,6 +134,12 @@ Save("rankings.png");
 Key(Keys.H);
 Save("distress-guide.png");
 Key(Keys.Escape);
+typeof(GameForm).GetField("selectedCar", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(form, 1);
+typeof(GameForm).GetMethod("ConfirmCarSelection", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, null);
+if (((CrashSceneFrames)typeof(GameForm).GetField("crashScene", BindingFlags.Instance |
+    BindingFlags.NonPublic)!.GetValue(form)!).CarIndex != 1 ||
+    model.CrashSceneDurationSeconds < 27)
+    throw new Exception("Lightning McQueen selection must load the second crash scene");
 model.Start();
 for (int i = 0; i < 190; i++) model.Update(1f / 60f);
 model.AccelerateHeld = true;
@@ -136,7 +186,7 @@ Save("traffic-motorcycle.png");
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Crashing; i++) model.Update(1f / 60f);
 for (int i = 0; i < 55; i++) model.Update(1f / 60f);
 Save("crash.png");
-for (int i = 0; i < 600 && model.Phase != GamePhase.CrashOutro; i++) model.Update(1f / 60f);
+for (int i = 0; i < 1800 && model.Phase != GamePhase.CrashOutro; i++) model.Update(1f / 60f);
 if (model.Phase != GamePhase.CrashOutro) throw new Exception("Crash scene did not reach fade transition");
 for (int i = 0; i < 36; i++) model.Update(1f / 60f);
 Save("crash-outro.png");
