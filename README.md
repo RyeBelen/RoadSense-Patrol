@@ -4,7 +4,7 @@
 
 Road hazards and scanner detections are simulated for demonstration. The game does not run the RoadSense AI model or connect to the iOS app.
 
-Hold **W** to surge toward the top of the road at 75% above your current cruise speed. Release it to return to your cruise position and progression speed. The HUD shows both speeds in km/h. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
+Hold **W** to surge toward the top of the road. Release it to return to your cruise position and progression speed. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
 
 ## Download
 

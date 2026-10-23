@@ -118,6 +118,11 @@ public sealed class GameModel
     public int Lives { get; private set; }
     public float Speed { get; private set; }
     public float EffectiveSpeed { get; private set; }
+    // Road motion uses screen units per second; the HUD maps that progression to arcade km/h.
+    public float CruiseKph => 80 + 20 * Math.Clamp((Speed - config.BaseSpeed) /
+        Math.Max(1, config.MaxSpeed - config.BaseSpeed), 0, 1);
+    public float DisplayKph => Math.Clamp(CruiseKph +
+        (EffectiveSpeed / Math.Max(1, Speed) - 1) * (100f / 3f), 0, 125);
     public float CrashProgress => Phase == GamePhase.Crashing ? 1 - crashSeconds / 2.4f : 0;
     public float Elapsed => gameClock;
     public float FlashSeconds => flashSeconds;

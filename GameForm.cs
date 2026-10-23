@@ -611,7 +611,7 @@ public sealed class GameForm : Form
         DrawText(g, "SPEEDOMETER", 12, Muted, 25, 483, style: FontStyle.Bold);
         DrawText(g, game.AccelerateHeld && !game.BrakeHeld ? "BOOST" : "CRUISE", 11, accent,
             151, 484, true, false, FontStyle.Bold, 68);
-        float fraction = Math.Clamp(game.EffectiveSpeed / (config.MaxSpeed * 1.75f), 0, 1);
+        float fraction = Math.Clamp((game.DisplayKph - 60) / 70, 0, 1);
         using (var track = new Pen(Border, 7)) g.DrawArc(track, 42, 507, 116, 98, 155, 230);
         using (var progress = new Pen(accent, 7) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             g.DrawArc(progress, 42, 507, 116, 98, 155, 230 * fraction);
@@ -620,8 +620,8 @@ public sealed class GameForm : Form
             g.DrawLine(needle, 100, 556, 100 + (float)Math.Cos(angle) * 42, 556 + (float)Math.Sin(angle) * 42);
         FillEllipse(g, White, 96, 552, 8, 8);
         FillRound(g, Panel, 65, 532, 70, 36, 10);
-        DrawText(g, $"{game.EffectiveSpeed:0} km/h", 19, White, 100, 550, true, true, FontStyle.Bold);
-        DrawText(g, $"CRUISE {game.Speed:0} km/h", 10, Muted, 100, 570, true, true, FontStyle.Bold);
+        DrawText(g, $"{game.DisplayKph:0} km/h", 19, White, 100, 550, true, true, FontStyle.Bold);
+        DrawText(g, $"CRUISE {game.CruiseKph:0} km/h", 10, Muted, 100, 570, true, true, FontStyle.Bold);
     }
 
     private void UiButton(Graphics g, string label, float x, float y, float w, float h, Color accent, bool active = false)

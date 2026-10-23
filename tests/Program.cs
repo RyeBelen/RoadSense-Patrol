@@ -32,6 +32,8 @@ for (int i = 0; i < 15 * 60; i++) model.Update(1f / 60f);
 Check(model.Speed > 205 && model.Lives <= 3, "speed rises during an endless run");
 var speedModel = new GameModel(new GameConfig { BoothSeed = 4242, StartingLives = 999 });
 speedModel.Start();
+Check(Math.Abs(speedModel.CruiseKph - 80) < .01f && Math.Abs(speedModel.DisplayKph - 80) < .01f,
+    "speedometer starts at 80 km/h instead of using world scroll units");
 for (int i = 0; i < 63 * 60; i++) speedModel.Update(1f / 60f);
 Check(speedModel.Speed >= 325 && speedModel.Speed < 350,
     "speed has a visible rise after one minute of survival");
@@ -43,10 +45,14 @@ Check(speedModel.EffectiveSpeed > speedModel.Speed * 1.34f && speedModel.Speed >
 for (int i = 0; i < 65; i++) speedModel.Update(1f / 60f);
 Check(speedModel.CarY < 150 && speedModel.EffectiveSpeed > speedModel.Speed * 1.74f,
     "holding W drives the car near the top of the road at higher speed");
+Check(speedModel.DisplayKph > speedModel.CruiseKph && speedModel.DisplayKph <= 125,
+    "W shows a temporary higher km/h reading");
 speedModel.AccelerateHeld = false;
 speedModel.Update(1f / 60f);
 Check(Math.Abs(speedModel.EffectiveSpeed - speedModel.Speed) < .01f && speedModel.Speed > cruiseSpeed,
     "releasing W returns to current progression speed");
+Check(Math.Abs(speedModel.DisplayKph - speedModel.CruiseKph) < .01f,
+    "releasing W restores the current cruise km/h reading");
 for (int i = 0; i < 50; i++) speedModel.Update(1f / 60f);
 Check(Math.Abs(speedModel.CarY - GameModel.PlayerY) < .01f,
     "releasing W brings the car back to its cruise position");
