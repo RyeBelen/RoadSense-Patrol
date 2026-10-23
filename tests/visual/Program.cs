@@ -38,6 +38,7 @@ using (var inputForm = new GameForm())
         throw new Exception("W boost must end and restore cruise speed");
 }
 using var form = new GameForm();
+if (!form.Text.Contains("v0.4.4")) throw new Exception("Window title must identify the build being tested");
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)
 {

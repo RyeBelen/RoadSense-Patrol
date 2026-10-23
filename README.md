@@ -6,11 +6,11 @@ Road hazards and scanner detections are simulated for demonstration. The game do
 
 The Windows executable and game window use the RoadSense logo. When the third life is lost, the game plays the supplied crash sound; the original source clip is `crash sound.mp3` and the embedded playback asset is `assets/crash.wav`.
 
-Hold **W** to surge toward the top of the road. Release it to return to your cruise position and progression speed. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
+Press **W** for a short surge toward the top of the road, or hold it to stay forward. The car returns to its cruise position and progression speed after the surge ends. The HUD starts at 80 km/h, rises toward 100 km/h as the run progresses, and shows the temporary boost separately. Road scrolling uses screen units, so the displayed km/h is an arcade scale. Use **A/D** or the arrow keys to steer, **S** to brake, and **B** to scan farther ahead.
 
 ## Download
 
-Install the latest Windows x64 release from the [GitHub Releases page](https://github.com/clouddddd34/RoadSense-Patrol/releases). The installer adds a Start Menu shortcut and an optional desktop shortcut. It runs offline and includes the .NET runtime.
+Packaged Windows x64 builds are on the [GitHub Releases page](https://github.com/clouddddd34/RoadSense-Patrol/releases). For the newest source changes, build from `main` using the instructions below. The installer adds a Start Menu shortcut and an optional desktop shortcut. It runs offline and includes the .NET runtime.
 
 ## Run
 
@@ -73,7 +73,7 @@ Edit `settings.json` beside the executable:
 - `boothSeed`: set to an integer for the same route for every player; use `null` for randomized routes.
 - `fullscreenOnStart`: set to `true` for a fullscreen booth display.
 - `startingLives`: default 3.
-- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. Holding W temporarily raises effective speed by 35%; releasing it returns to the current progression speed.
+- `baseSpeed`, `speedIncreasePerSecond`, `maxSpeed`: tune the endless speed curve. A W surge temporarily raises effective speed by 75%; afterward it returns to the current progression speed.
 - `prizeScore`: score target, default 5000.
 - `showPrizeTarget`: set to `true` only when the booth actually offers a prize.
 

@@ -30,7 +30,7 @@ public sealed class GameForm : Form
     {
         game = new(config);
         game.SoundRequested += audio.Play;
-        this.Text = "RoadSense Patrol";
+        this.Text = $"RoadSense Patrol v{typeof(GameForm).Assembly.GetName().Version?.ToString(3)}";
         Icon = LoadAppIcon() ?? Icon;
         ClientSize = new Size(1280, 768);
         MinimumSize = new Size(960, 576);
