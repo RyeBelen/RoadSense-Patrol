@@ -85,6 +85,8 @@ boostCollision.Objects.Add(new RoadObject { Lane = 1, Hazard = HazardType.Pothol
 boostCollision.Update(1f / 60f);
 Check(boostCollision.Lives == 98, "boost collisions follow the car at the top of the road");
 bool crashed = false;
+int crashSoundRequests = 0;
+model.SoundRequested += name => { if (name == "crash") crashSoundRequests++; };
 for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
 {
     model.Update(1f / 60f);
@@ -93,6 +95,7 @@ for (int i = 0; i < 300 * 60 && model.Phase != GamePhase.Results; i++)
 Check(crashed && model.Phase == GamePhase.Results && model.Lives == 0 && model.Score >= 0 &&
       model.Detected > 0 && model.NearMisses == 0,
     "three lost lives trigger crash and results");
+Check(crashSoundRequests == 1, "final lost life plays crash sound once");
 var mechanics = new GameModel(new GameConfig { BoothSeed = 99 });
 mechanics.Start();
 for (int i = 0; i < 190; i++) mechanics.Update(1f / 60f);

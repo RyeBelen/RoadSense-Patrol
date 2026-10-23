@@ -1,9 +1,16 @@
 using System.Drawing;
 using System.Reflection;
+using System.Media;
 using System.Windows.Forms;
 using RoadSensePatrol;
 
 Application.EnableVisualStyles();
+var resources = typeof(GameForm).Assembly;
+using (var crashWave = resources.GetManifestResourceStream(resources.GetManifestResourceNames()
+    .Single(n => n.EndsWith("crash.wav", StringComparison.OrdinalIgnoreCase)))!)
+using (var crashPlayer = new SoundPlayer(crashWave)) crashPlayer.Load();
+if (!resources.GetManifestResourceNames().Any(n => n.EndsWith("roadsense-app.ico", StringComparison.OrdinalIgnoreCase)))
+    throw new Exception("RoadSense window icon is missing");
 using var form = new GameForm();
 var model = (GameModel)typeof(GameForm).GetField("game", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(form)!;
 void Save(string name)

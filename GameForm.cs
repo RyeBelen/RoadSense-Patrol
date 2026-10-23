@@ -31,6 +31,7 @@ public sealed class GameForm : Form
         game = new(config);
         game.SoundRequested += audio.Play;
         this.Text = "RoadSense Patrol";
+        Icon = LoadAppIcon() ?? Icon;
         ClientSize = new Size(1280, 768);
         MinimumSize = new Size(960, 576);
         StartPosition = FormStartPosition.CenterScreen;
@@ -318,6 +319,18 @@ public sealed class GameForm : Form
         if (stream is null) return null;
         using var image = Image.FromStream(stream);
         return new Bitmap(image);
+    }
+
+    private static Icon? LoadAppIcon()
+    {
+        var assembly = typeof(GameForm).Assembly;
+        string? name = assembly.GetManifestResourceNames().FirstOrDefault(n =>
+            n.EndsWith("roadsense-app.ico", StringComparison.OrdinalIgnoreCase));
+        if (name is null) return null;
+        using var stream = assembly.GetManifestResourceStream(name);
+        if (stream is null) return null;
+        using var icon = new Icon(stream);
+        return (Icon)icon.Clone();
     }
 
     private static Image? LoadMajorPotholeSprite()
@@ -884,7 +897,7 @@ public sealed class GameForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { timer.Dispose(); audio.Dispose(); roadsidePoster?.Dispose(); brandLogo?.Dispose(); }
+        if (disposing) { timer.Dispose(); audio.Dispose(); roadsidePoster?.Dispose(); brandLogo?.Dispose(); majorPotholeSprite?.Dispose(); }
         base.Dispose(disposing);
     }
 }

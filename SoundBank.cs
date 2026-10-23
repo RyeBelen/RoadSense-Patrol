@@ -15,7 +15,7 @@ public sealed class SoundBank : IDisposable
         Add("near", 930, 130); Add("hit", 150, 250); Add("pickup", 1020, 150);
         for (int i = 1; i <= GameConfig.MultiplierCap; i++) Add("clean" + i, 580 + i * 65, 80);
         Add("results", 760, 250);
-        Add("crash", 105, 650);
+        AddEmbedded("crash", "crash.wav");
     }
 
     public void Play(string name)
@@ -42,6 +42,20 @@ public sealed class SoundBank : IDisposable
                 writer.Write((short)(wave * fade * 8000));
             }
         }
+        stream.Position = 0;
+        sounds[name] = (stream, new SoundPlayer(stream));
+    }
+
+    private void AddEmbedded(string name, string suffix)
+    {
+        var assembly = typeof(SoundBank).Assembly;
+        string? resource = assembly.GetManifestResourceNames().FirstOrDefault(n =>
+            n.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+        if (resource is null) throw new InvalidOperationException($"Missing sound: {suffix}");
+        using var source = assembly.GetManifestResourceStream(resource) ??
+            throw new InvalidOperationException($"Cannot open sound: {suffix}");
+        var stream = new MemoryStream();
+        source.CopyTo(stream);
         stream.Position = 0;
         sounds[name] = (stream, new SoundPlayer(stream));
     }

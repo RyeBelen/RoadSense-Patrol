@@ -1,5 +1,5 @@
 #define AppName "RoadSense Patrol"
-#define AppVersion "0.3.2"
+#define AppVersion "0.4.0"
 #ifndef GamePublishDir
 #define GamePublishDir "..\publish"
 #endif
@@ -24,6 +24,7 @@ SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\RoadSensePatrol.exe
 SetupLogging=yes
+SetupIconFile=..\assets\roadsense-app.ico
 CloseApplications=yes
 LicenseFile=..\LICENSE
 

@@ -222,7 +222,7 @@ public sealed class GameModel
         if (Phase == GamePhase.Crashing)
         {
             crashSeconds -= dt;
-            if (crashSeconds <= 0) { Phase = GamePhase.Results; resultIdle = 0; SoundRequested?.Invoke("results"); }
+            if (crashSeconds <= 0) { Phase = GamePhase.Results; resultIdle = 0; }
             return;
         }
         if (Phase != GamePhase.Playing) return;
